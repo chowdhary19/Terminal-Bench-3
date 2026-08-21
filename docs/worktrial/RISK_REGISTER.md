@@ -5,41 +5,25 @@ we do about it. Risks below the line are tracked but not currently driving desig
 
 ## R1. A frontier model solves it on the first pass
 
-Highest risk by a distance. Everything else can be fixed by iterating; this one invalidates the task.
-Opus 5 at maximum reasoning and GPT-5.6 Sol at extra-high reasoning are both strong at reading a small
-Python repository and diffing an importer against the schema it writes into. If the model reads the v1
-schema, sees three tables the importer never touches, and carries all three across in one edit, the task
-is a twenty-minute exercise.
+No longer a risk for the Phase 1A design. It is a measured result: Opus 5 at reasoning max returned
+reward 1 in 10 minutes 30 seconds, 8.75% of the time budget, no wrong turns, and produced a better fix
+than the reference solution. The cause was a free differential oracle rather than clue density, and the
+redesign in [REDESIGN_1B.md](REDESIGN_1B.md) removes it.
 
-Detection. The three standard trials per agent. `harbor analyze` reports `near_miss` and
-`difficulty_crux`, and a run of near-misses means the task looks harder than it is.
+The risk carries forward to the redesign in a weaker but live form. The pessimistic floor there is about
+90 minutes if all three surfaces land quickly, against a central estimate of 2.5 to 5 hours. That clears
+the one-hour warning line without much margin.
 
-Phase 1A implementation exposed a stronger fast path than the one originally feared, and it comes from a
-fairness requirement rather than an oversight. The public specification has to state the three contract
-clauses normatively, or the task is underspecified and unfair. It therefore says in plain words that merge
-resolution follows the chain to its end, that a recorded result envelope is historical, and that a
-scheduling decision is not moved by a later policy revision. The shipped importer is about 130 lines with
-three helper functions that map one to one onto those clauses. A careful reader can hold the spec beside
-the importer and find all three by direct comparison, with no experiment run.
+Detection. One calibration trial against the redesign before any further investment, read the same way
+this one was: trajectory first, reward second. Specifically, check whether the agent reconstructed a
+legacy oracle by some route we did not anticipate, and whether it reached the Surface C reconstruction by
+reasoning or by guessing and checking against the finite transcript.
 
-The original fear, a structural diff of v1 tables against snapshot sections against v2 tables, is closed:
-nothing is absent.
-
-Mitigation, in order of preference and all deferred until the calibration pilot says whether they are
-needed. Stop co-locating the three defects: one small file whose three helpers line up with the three
-clauses is the thing that makes side-by-side reading work, and production code of this kind would spread
-the same mistakes across the modules that own each concern. Make each wrong behaviour locally plausible so
-that reading the function alone does not settle it, forcing cross-module reasoning. Only then consider
-widening the continuation.
-
-What is not on the table is weakening the specification. An unfair task fails a different rubric criterion
-and is worse than an easy one. The shipped sandbox does not exercise retries or pending
-work across a restore, so the agent has to invent those experiments rather than run an existing one.
-Graded worlds are shaped to punish the recompute-from-current-state approach specifically, which is the
-approach a fast reader lands on. If trials still pass, the escalation ladder in order of preference is:
-make the recorded due tick genuinely underivable from post-snapshot record state; add a second export
-boundary so a partial fix survives one round trip and fails the second; widen the continuation. Adding
-unrelated complexity is not on the ladder.
+Mitigation. Kill criterion 4 in the redesign document is explicit: a clean solve with time to spare ends
+that design too. The levers if it survives but is merely fast are, in order, to make the Surface C
+reconstruction genuinely require the three-source intersection on more profiles, and to widen the graded
+origin profiles so a fix specialised to the oldest generation does not pass. What is not a lever is
+cutting documentation, which trades difficulty for unfairness.
 
 ## R2. Verifier false positives
 
@@ -84,6 +68,23 @@ Mitigation. The self-tests above run inside the build stage that produces the fi
 cannot reach the final image. Oracle at reward 1 across repeated runs is the second gate, and the
 intentionally broken starter failing is the third: a fixture that both a correct and a broken
 implementation satisfy is a fixture that tests nothing.
+
+## R2d. Premature completion replaces genuine difficulty
+
+Removing the agent's free oracle is meant to stop free verification, not to make correctness unknowable.
+If the redesign's difficulty ends up resting on the agent being unable to check its work, the task is
+measuring confidence calibration rather than state reasoning, and a careless agent and a careful one fail
+for the same reason.
+
+Detection. Read the calibration trajectory for whether the agent understood the three surfaces and
+mis-executed, or never understood them and stopped early. A failure that looks like "declared done after
+the finite transcript passed" is this risk, not the intended difficulty.
+
+Mitigation. The finite evidence set has to be rich enough that a careful agent can convince itself, and
+the specification has to determine the answer without an oracle. This is kill criterion 5 in the redesign
+document. It is also the reason the format-versus-behaviour split is drawn where it is: field meanings
+are complete, so the correct migration is derivable, while legacy runtime behaviour is absent, so it
+cannot be generated on demand.
 
 ## R3. Verifier exploitability
 
@@ -260,6 +261,22 @@ Mitigation. The candidate upgrades their personal ChatGPT account, then reauthen
 the one-call Sol probe before spending trial budget. Using the employer-managed workspace is not an
 option for a hiring trial. This is a schedule risk rather than a design risk: it blocks nothing in Phase 1,
 and the Claude half of the trials is unaffected. Sequence the work so the Codex trials come last.
+
+## R10c. The redesign consumes the trial schedule
+
+The redesign is estimated at about two days to reach Phase 1A-equivalent gates, and day one is already
+spent. That leaves roughly two days for calibration and hardening and two for the eight required trials
+and the write-up, with Codex still blocked on a personal plan upgrade that gates three standard trials
+and one adversarial trial.
+
+Detection. If the redesign has not reached oracle 1 and nop 0 by the end of day three, the trial budget
+is at risk.
+
+Mitigation. Kill criterion 7 makes the fallback explicit rather than leaving it to be discovered late.
+The Phase 1A task already passes every mechanical gate and is fully documented; shipping it with an
+honest account of its difficulty, including the calibration result that shows it is too easy, is a worse
+submission than a well-calibrated redesign but a better one than an unfinished redesign. Sequence the
+Codex plan decision early so it is not discovered on the critical path.
 
 ## R11. Host architecture differs from CI
 

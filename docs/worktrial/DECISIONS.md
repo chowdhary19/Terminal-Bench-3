@@ -498,3 +498,79 @@ Consequences. The reward file is written once, at the end, by root, from an expl
 writes a placeholder.
 
 Status. Accepted.
+
+---
+
+## ADR-022: The agent must not be able to run a correct legacy runtime
+
+Decision. In the redesign, no v1 or v2 executable ships. Historical generations are documented as data
+formats with field meanings; normative behavioural semantics exist only for the current runtime.
+
+Context. The Opus 5 calibration returned reward 1 in 10 minutes 30 seconds. The trajectory shows the
+decisive advantage was not clue density: a correct v1 runtime shipped alongside the broken restore, and
+the graded property was "restored v2 behaves like continued v1", so the agent wrote a differential fuzzer
+over 2,300 worlds in about three minutes and ran a mechanical find-and-fix loop.
+
+Alternatives. Hide the symptoms, rename the helpers, scatter the same defects across files, cut
+documentation. All of these tune clue density and leave the free oracle intact, so the fuzzer still finds
+everything.
+
+Rationale. Removing the oracle changes what is being measured, from "run a fuzzer and fix what it
+reports" to "reason about what the historical state means and prove it from the specification". A
+decommissioned legacy runtime is also the ordinary state of a real archive-restore codebase.
+
+Consequences. The format-versus-behaviour split becomes load-bearing for fairness and is the first kill
+criterion: if field meanings cannot be documented without amounting to a v1 behavioural specification,
+the oracle returns and the design fails. Verification also stops being free for the agent, which is the
+point, but it raises the risk of premature completion and has to be watched rather than celebrated.
+
+Status. Accepted.
+
+---
+
+## ADR-023: Difficulty comes from migration composition, not from a harder single hop
+
+Decision. Three schema generations with a declared version chain. Each hop is locally correct for the
+pair of versions it was written for; the composition loses or reinterprets state a later version needs.
+
+Context. Phase 1A's three defects were three wrong lines in one file. Once found, each repair was a small
+local edit, and finding them was free given the oracle. Raising discovery cost alone would not have
+changed the shape of the work.
+
+Alternatives. Keep one hop and make the single migration subtler. Add more surfaces. Add scale.
+
+Rationale. A composition failure has a property a single-hop bug does not: reading any one migration in
+isolation shows nothing wrong, because nothing in it is wrong. The agent has to hold three schema models
+at once and find an information-flow gap between them. That is a different and harder question than
+"which line is incorrect".
+
+Consequences. The three repairs must differ in kind or one rewrite covers them, so they are fixed as a
+reconstruction, a point-in-time resolution, and an honest representation of absence. Component-level
+schema versions are introduced with named release profiles, which is how staged rollouts really archive,
+and a v2-origin profile is graded so that special-casing the oldest generation does not pass.
+
+Status. Accepted.
+
+---
+
+## ADR-024: Generate fixtures forward from ground truth, then emit the snapshot
+
+Decision. The verifier build stage constructs the intended current-runtime world natively, then emits a
+historical snapshot representing it, applying the losses the generation boundary implies. Expected
+outputs come from running the current runtime on the true world.
+
+Context. Phase 1A generated expectations by running a correct v1 world, which worked because the
+verifier never needed a correct v2 restore. The redesign has no legacy runtime to run, so expectations
+could only come from a correct forward migration, which would put the answer in the build stage.
+
+Alternatives. Keep a correct reference migration in the discarded build stage.
+
+Rationale. Emitting backwards from ground truth preserves, and slightly strengthens, the Phase 1A
+property: no correct forward migration exists anywhere in the verifier image, build stage included. The
+build stage holds the inverse of the task, and inverting it is the work.
+
+Consequences. The emitter must be genuinely lossy in exactly the ways the design needs, and the
+reconstruction it forces must stay determinate on every supported profile. That determinacy is the third
+kill criterion.
+
+Status. Accepted.
