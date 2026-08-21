@@ -14,14 +14,26 @@ is a twenty-minute exercise.
 Detection. The three standard trials per agent. `harbor analyze` reports `near_miss` and
 `difficulty_crux`, and a run of near-misses means the task looks harder than it is.
 
-The concrete fast path we most fear: the agent diffs the v1 tables against the snapshot sections against
-the v2 tables, sees something absent, and carries it across. That is a five-minute read for a strong
-model.
+Phase 1A implementation exposed a stronger fast path than the one originally feared, and it comes from a
+fairness requirement rather than an oversight. The public specification has to state the three contract
+clauses normatively, or the task is underspecified and unfair. It therefore says in plain words that merge
+resolution follows the chain to its end, that a recorded result envelope is historical, and that a
+scheduling decision is not moved by a later policy revision. The shipped importer is about 130 lines with
+three helper functions that map one to one onto those clauses. A careful reader can hold the spec beside
+the importer and find all three by direct comparison, with no experiment run.
 
-Mitigation. The design closes that path directly. Nothing is missing at the structural level: every
-section is exported, has a home in v2, and is written by the importer. The defects live inside
-translations that are present and wrong, so a structural diff returns nothing and the agent has to run
-experiments to find anything. The shipped sandbox does not exercise retries or pending
+The original fear, a structural diff of v1 tables against snapshot sections against v2 tables, is closed:
+nothing is absent.
+
+Mitigation, in order of preference and all deferred until the calibration pilot says whether they are
+needed. Stop co-locating the three defects: one small file whose three helpers line up with the three
+clauses is the thing that makes side-by-side reading work, and production code of this kind would spread
+the same mistakes across the modules that own each concern. Make each wrong behaviour locally plausible so
+that reading the function alone does not settle it, forcing cross-module reasoning. Only then consider
+widening the continuation.
+
+What is not on the table is weakening the specification. An unfair task fails a different rubric criterion
+and is worse than an easy one. The shipped sandbox does not exercise retries or pending
 work across a restore, so the agent has to invent those experiments rather than run an existing one.
 Graded worlds are shaped to punish the recompute-from-current-state approach specifically, which is the
 approach a fast reader lands on. If trials still pass, the escalation ladder in order of preference is:
