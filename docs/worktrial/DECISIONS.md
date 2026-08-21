@@ -1,0 +1,500 @@
+# Decision log
+
+Short records. One decision each. Status is Accepted, Superseded, or Open.
+
+---
+
+## ADR-001: Build the task, with revisions
+
+Decision. Proceed with `sandbox-upgrade-continuity`.
+
+Context. The uniqueness scan read nine adjacent tasks in full. None grades the capability of deciding
+which parts of a running system's state are logically load-bearing but invisible in its records. The two
+closest neighbours own different cruxes: `payments-pipeline-fix` owns cold-start latency,
+`session-window-debug` owns streaming watermark and GC correctness.
+
+Alternatives. Reject on overlap. Pivot to a different domain.
+
+Rationale. The gap is real and the domain is unoccupied. The revisions the scan forces are constraints on
+implementation, not a different task.
+
+Consequences. Three design constraints become binding: retries stay coupled to identifier translation,
+pending work stays about carrying recorded due times, and the task is framed as continuity rather than
+migration.
+
+Status. Accepted.
+
+---
+
+## ADR-002: State the invariant, not the failure modes
+
+Decision. `instruction.md` states one invariant and the public behavioural contract. It does not
+enumerate identity, retry, and pending-work continuity as three things to fix.
+
+Context. The three surfaces have to be discoverable, or the task is a checklist. The rubric also pushes
+this way: `instruction_concision` fails instructions that hint at the approach, `outcome_verified` fails
+instructions that enumerate steps.
+
+Alternatives. List the three manifestations, which is easier to write and easier to verify as fair.
+
+Rationale. The whole difficulty is realizing the partial repair is partial. Naming the parts removes it.
+
+Consequences. `test_instruction_alignment` becomes load-bearing. Every graded behaviour must trace to a
+numbered rule in the public contract, and the contract must be precise enough that a reader could write
+the same tests. Verified by handing the instruction to a reader who does not know the solution.
+
+Status. Accepted.
+
+---
+
+## ADR-003: Local CLI over SQLite, no HTTP layer
+
+Decision. One CLI against a local SQLite store. No server, no ports, no compose file.
+
+Context. The original direction allowed a small HTTP interface.
+
+Alternatives. HTTP service. Multi-container with a sidecar store.
+
+Rationale. An HTTP layer adds process lifecycle, port binding, readiness waiting, and a class of trial
+flakiness, and contributes nothing to the state-continuity problem. SQLite is in the standard library,
+which keeps the dependency surface at zero and makes `deterministic_reproducible` and
+`environment_hygiene` easy. Multi-container is a Harbor capability, not a reason to use it.
+
+Consequences. The verifier drives the subject entirely through subprocess invocations of one documented
+entry point, which is also the cleanest place to drop privileges.
+
+Status. Accepted.
+
+---
+
+## ADR-004: Logical clock, no wall time
+
+Decision. Time advances only through an explicit `tick` command over an integer counter.
+
+Context. Scheduled work has to survive the restore boundary, and scheduled work usually means timers.
+
+Alternatives. Wall-clock timestamps with a frozen or injected clock.
+
+Rationale. Two sandboxes at the same tick are exactly comparable with no tolerance windows, which is what
+lets the verifier compare worlds by equality rather than by approximation. It also removes sleeps, timing
+races, and machine-speed dependence from both the task and the harness.
+
+Consequences. Scheduling is deterministic and reviewable. The cost is a slightly artificial product
+surface, which is acceptable: internal sandbox and simulation tooling really is built this way.
+
+Status. Accepted.
+
+---
+
+## ADR-005: Two lanes, pristine reference versus agent subject
+
+Decision. The verifier runs a reference lane on the pristine baseline that never exports or imports, and
+a subject lane on the agent's code that does the full round trip. It compares transcripts and final
+state.
+
+Context. Something has to define the correct continuation. Options were a hand-written reference
+implementation in the verifier, golden transcripts baked at image build time, or running the pristine
+baseline at verify time.
+
+Alternatives considered.
+- Independent reference implementation, as `risk-scorer-replay` does. Correct but expensive, and it
+  duplicates the domain twice with the drift risk that implies.
+- Golden transcripts baked into the verifier image. Cheap at verify time, but the transcripts silently
+  drift out of sync with the generator whenever either changes.
+- Compare the agent's restored world against the agent's own uninterrupted world. Implementation-agnostic
+  and cheap, but an agent that degrades both sides identically passes.
+
+Rationale. Running the pristine baseline at verify time cannot drift, needs no second implementation, and
+gives ground truth the agent cannot influence. Comparing the pre-snapshot prefix as well as the
+continuation makes symmetric degradation fail, because the reference side is not the agent's code.
+
+Consequences. The pristine baseline must be baked into the verifier image byte-identically to what ships
+in the agent environment, which the `separate_verifier_configured` criterion checks. Verifier runtime
+roughly doubles, which the 900-second timeout absorbs.
+
+Status. Superseded. Superseded by ADR-015. The runtime pristine reference lane is removed.
+
+---
+
+## ADR-006: Whole-tree artifact, not a diff-and-apply collect hook
+
+Decision. `artifacts = ["/app/"]`. The verifier copies the tree into a scratch directory owned by the
+unprivileged subject user and runs it there.
+
+Context. The original hypothesis preferred a restricted patch applied to a pristine verifier-owned
+baseline, on the theory that it contains hostile code better.
+
+Alternatives. A `[[verifier.collect]]` git-diff hook with the strict apply chain the
+`artifact_efficiency` criterion mandates: exact apply, then reset plus three-way, then a loud zero.
+
+Rationale. The patch approach does not actually contain hostile code, because the verifier still executes
+whatever the patch produced. What it buys is a smaller transfer and a reviewable diff, and the tree here
+is small pure-Python with no dependency directories, so neither is worth much. What it costs is a real
+failure mode: an unapplyable patch is an infrastructure failure that the rubric requires be treated as a
+hard verifier error, and that is a false-negative surface aimed straight at the highest-ranked risk in
+the register. `risk-scorer-replay` and `wal-recovery-ordering` both ship `artifacts = ["/app/"]` and both
+execute agent code, so this is the precedented shape for tasks like ours.
+
+Consequences. Containment rests entirely on privilege dropping and reward-channel isolation rather than
+on transfer shape. Artifact size is tracked in the risk register; if an agent ships large scratch files,
+the fix is an exclude list, not a redesign.
+
+Status. Superseded. Amended by ADR-020. The whole-tree artifact stays, but root-side copying is replaced by in-place sanitisation.
+
+---
+
+## ADR-007: Never import agent code into the verifier process
+
+Decision. The verifier invokes the subject only as a subprocess under
+`setpriv --reuid nobody --regid nogroup --clear-groups --no-new-privs`, with a clean environment and
+isolated interpreter flags. No agent module is ever imported by pytest.
+
+Context. The `verifier_execution_isolation` criterion treats a pytest collection-time import of agent
+code as execution at root, and `wal-recovery-ordering` ships a working exploit against exactly that:
+a poisoned module that double-forks a reward-forging daemon and exits the importing stage successfully.
+
+Alternatives. Import agent modules and isolate per-test with a forking conftest, which is what
+`wal-recovery-ordering` does because its contract is a Python API.
+
+Rationale. Our contract is a CLI, so the subprocess boundary is free. Dropping the in-process path
+removes the entire import-time attack class instead of defending it.
+
+Consequences. Combined with a root-only reward directory created before anything runs, root as the sole
+writer of the reward, child output captured to temp files rather than pipes, and the child's process
+group killed after each lane. `cheat/solve.sh` ships as the standing proof.
+
+Status. Accepted.
+
+---
+
+## ADR-008: Delete the source store between export and import
+
+Decision. The verifier removes the subject's source store after `snapshot export` and before
+`snapshot import`, and hands the importer nothing but the snapshot file.
+
+Context. The stated threat is an implementation that aliases the source world instead of restoring
+independently. Detecting aliasing after the fact means chasing symlinks, hard links, copies, and
+opportunistic reads of a known path.
+
+Alternatives. Detect aliasing by inspecting the restored store, its inode, and the paths the process
+opened.
+
+Rationale. Removing the source makes aliasing impossible rather than detectable, needs no heuristics, and
+matches how a real restore onto fresh storage works. The snapshot is also chowned to root at mode 0444
+for the import and re-hashed afterwards, so the subject cannot rewrite its own input either.
+
+Consequences. It becomes a stated part of the public contract that a restored sandbox is self-contained
+and does not depend on the original store existing, which keeps the constraint honest rather than a
+verifier trick.
+
+Status. Accepted.
+
+---
+
+## ADR-009: Thin normalization, identifiers ordinalized
+
+Decision. Compare after replacing physical row identifiers with their first-appearance ordinal within
+each lane and canonicalizing JSON key order. Nothing else is stripped, rounded, or reordered.
+
+Context. Differential verifiers leak through normalization. Strip too little and any implementation
+choice fails; strip too much and a lazy restore passes.
+
+Alternatives. Drop identifiers from the comparison entirely, which is simpler but makes identity
+continuity untestable, since a restore that scrambles cross-domain links would compare equal.
+
+Rationale. Ordinalization keeps the relational graph load-bearing while leaving implementations free to
+number rows however they like. Everything else in the comparison is integral or symbolic, so exact
+equality is achievable without tolerances.
+
+Consequences. Any future addition to the compared surface has to be exactly reproducible across
+implementations, or it does not belong in the comparison.
+
+Status. Superseded. Superseded by ADR-018. Physical identifiers leave normative output entirely, so ordinalization is unnecessary.
+
+---
+
+## ADR-010: One conceptual defect, three behavioural surfaces
+
+Decision. The starter code contains one mistake, that continuation state is treated as derived state,
+showing up in three places, rather than three independent bugs.
+
+Context. Three unrelated bugs would be a scavenger hunt and would fail `essential_difficulty`. One bug
+with one surface would be solvable by inspection.
+
+Alternatives. Three independent defects. A single defect with a single surface.
+
+Rationale. One insight applied in three places is what produces the intended trajectory: a plausible
+partial repair, a clean-looking diff, then the discovery that the model was incomplete. It also gives a
+coherent story to a reviewer, which matters for `reviewable`.
+
+Consequences. The three surfaces must be genuinely coupled. If implementation lets any of them be fixed
+in isolation without the identity work, the overlap argument against `payments-pipeline-fix` weakens and
+the difficulty drops.
+
+Status. Accepted.
+
+---
+
+## ADR-011: Category Software, subcategory Databases
+
+Decision. `category = "Software"`, `subcategory = "Databases"`.
+
+Context. The taxonomy defines Software/Databases as storage engines, transactions, indexing, and
+recovery, and Software/Systems as concurrency, backends, distributed systems, and infrastructure.
+
+Alternatives. Software/Systems. A new subcategory such as "State management", which the taxonomy permits
+when nothing fits.
+
+Rationale. The task is state reconstruction and recovery across a schema version, which sits closer to
+recovery than to backends. It also places the task alongside `live-database-cutover`,
+`wal-recovery-ordering`, and `mvcc-lsm-compaction`, which is the honest neighbourhood for a reviewer
+checking novelty.
+
+Consequences. Revisit if the implementation ends up feeling more like application backend work than
+storage work. Inventing a subcategory is the last resort.
+
+Status. Open until the environment exists.
+
+---
+
+## ADR-012: Target the Harbor 0.14 feature set
+
+Decision. Use only task-format features present in Harbor 0.14, and pin explicitly when running trials
+locally.
+
+Context. `/run` and `/cheat` install `harbor==0.14.0`; `/validate` and the rubric review install
+`harbor==0.18.0`; `CONTRIBUTING.md` says install unpinned.
+
+Alternatives. Build against 0.18 and accept the risk.
+
+Rationale. A 0.18-only feature validates in CI and then fails under the trials, which are the expensive
+part of the assignment. The intersection costs nothing here, because the shape we need is plain
+`artifacts` and separate verifier mode.
+
+Consequences. No `[[verifier.collect]]` hooks unless we confirm 0.14 supports them, which ADR-006 already
+makes unnecessary. Trial commands record their Harbor version alongside their results.
+
+Status. Accepted.
+
+---
+
+## ADR-013: Hidden fixtures are unreadable to the subject, and that is asserted
+
+Decision. The pristine baseline, world seeds, operation sequences, and reference outputs are root-owned
+at mode 0600 or 0700 for the duration of the subject lane. The verifier asserts, as a test, that the
+subject's user cannot read them.
+
+Context. The hostile review found that the strongest bypass is not forging a reward but replaying the
+baseline: correct code sits in the same container as the subject, so a subject that could read it and the
+hidden sequences could run them and echo the transcript without restoring anything.
+
+Alternatives. Rely on `/tests` being root-owned, which by default is still world-readable at 0755.
+
+Rationale. Default permissions leak the entire fixture set to the unprivileged user we deliberately run
+the subject as. `risk-scorer-replay` already treats this as a real threat and asserts its private binary
+is unreachable to `nobody`, which is the pattern to copy.
+
+Consequences. The reference lane needs its own unprivileged identity distinct from the subject's, and its
+working directory must not be traversable by the subject's user. Sequencing becomes load-bearing: the
+reference lane runs to completion and is sealed before any agent code starts.
+
+Status. Accepted.
+
+---
+
+## ADR-014: The defects are semantic, not structural
+
+Decision. No continuation state is missing from the snapshot, from the v2 schema, or from the importer's
+write path. Every section is present. The losses happen inside translations that are present and wrong.
+
+Context. The hostile review found the fastest solve path: diff v1 tables against snapshot sections
+against v2 tables, spot what is absent, carry it across. A strong model does that in one read, and it
+would reduce the task to a five-minute exercise.
+
+Alternatives. Omit sections from the snapshot or the importer, which is the more obvious way to stage the
+bug and the way the first draft of this design had it.
+
+Rationale. A structural diff has to come back clean, or the discovery phase collapses. Semantic defects
+force the agent to run the system and observe divergence, which is the trajectory the task is for.
+
+Consequences. Each defect has to be a plausible porting mistake rather than an omission: a null-tolerant
+reference resolver whose caller reads null as absence, a ledger rekeyed through that same resolver, and a
+v2 timer representation that stores an offset where v1 stored an absolute tick. Writing these so they
+look inherited rather than planted is now an implementation requirement, and it is the part most likely
+to need iteration.
+
+Status. Superseded. Amended by ADR-016, ADR-017 and ADR-019, which respecify each defect site.
+
+---
+
+## ADR-015: Verifier-authored snapshots and build-time expected outputs
+
+Decision. The verifier generates the graded v1 snapshots, the expected continuation transcripts, and the
+expected final states in a discarded Docker build stage. At run time there is no reference lane and no
+correct reference application in the image.
+
+Context. The reviewer found the previous design unsound on two counts. A subject that controls both
+`export` and `restore` defines both sides of correctness, so a byte-faithful round trip through a
+subject-authored artifact proves nothing. Separately, a runtime pristine lane both assumes v1 and v2
+semantics stay identical under a live comparison and ships correct code into the container the subject
+runs in.
+
+Alternatives. Keep the runtime lane and forbid subject-authored snapshots only for grading. Bake golden
+transcripts without regenerating them, accepting drift risk. Write an independent reference
+implementation in the verifier.
+
+Rationale. Generating at build time removes drift, because the fixtures and the generator are produced by
+the same run. It removes the runtime lane entirely. It also produces a strong security property that was
+not available before: the expected outputs come from executing the continuation against the **v1** world,
+so the verifier never needs and never contains a correct v2 restore. The answer to the actual problem
+exists nowhere in the verifier image.
+
+Consequences. Build-time self-tests become load-bearing, because a bad fixture is now baked rather than
+recomputed. The build asserts determinism across repeated generation, snapshot round-trip through the
+documented parser, and the v1/v2 equivalence invariant, and fails loudly on violation. `sandbox export`
+stays in the product for the agent's own experiments but is explicitly ungraded.
+
+Status. Accepted.
+
+---
+
+## ADR-016: The snapshot is a public structured document, not a database
+
+Decision. The snapshot is JSON in a format documented completely in the in-task specification. A raw
+SQLite file is never the interchange artifact.
+
+Context. With a database file as the snapshot, byte-copying it into the target path is a plausible
+"restore" and the trivial bypass is hard to close without heuristics.
+
+Alternatives. Keep the database file and detect copying. Use a bespoke binary format.
+
+Rationale. A document cannot be a running store, so the bypass closes by construction rather than by
+detection. A public format also keeps the difficulty where it belongs: hidden cases are hidden instances
+of a documented format, never hidden rules. No cryptography, encoding trick, compression puzzle,
+undocumented metadata, or obscure serialization is used, because those manufacture difficulty rather than
+test the state model.
+
+Consequences. The format specification becomes part of the public contract and has to be complete enough
+that two readers would write the same parser.
+
+Status. Accepted.
+
+---
+
+## ADR-017: Identity and completed-operation continuity are decoupled
+
+Decision. Logical links resolve against stable customer-facing references through a merge history.
+Completed-operation receipts preserve an immutable recorded result envelope. Neither repair fixes the
+other.
+
+Context. The reviewer found that a single total-resolver fix would have repaired both surfaces at once,
+collapsing two of the three consequences into one.
+
+Alternatives. Keep a shared resolver and accept the collapse. Drop one of the two surfaces.
+
+Rationale. The two questions are genuinely different in production. "Which live entity does this
+relationship point at now" is a graph-resolution question. "What did this request return the first time"
+is a historical-record question that must survive physical renumbering without being recomputed from
+present state. Making the receipt defect a rehydrate-from-current-row bug guarantees that no amount of
+link-resolution work repairs it.
+
+Consequences. Two distinct repair sites with distinct reasoning. The design must resist any later
+refactor that routes both through one helper.
+
+Status. Accepted.
+
+---
+
+## ADR-018: No physical identifiers in normative output
+
+Decision. `world dump` exposes stable customer-facing references only. Comparison is exact JSON equality
+after canonical key ordering, with collection order fixed by the public specification.
+
+Context. The previous design kept physical identifiers in the compared surface and ordinalized them by
+first appearance, which is a normalization layer, and normalization layers are where differential
+verifiers leak.
+
+Alternatives. Keep ordinalization. Drop identifiers from comparison without exposing logical references,
+which would make identity continuity untestable.
+
+Rationale. Physical row identifiers are not externally meaningful, so publishing them in normative output
+was a mistake. Removing them lets the comparison be exact equality with no normalization to attack, and it
+makes a broken relationship directly visible as the wrong logical reference rather than as a permutation
+mismatch.
+
+Consequences. Implementations are free to number rows however they like, with no verifier machinery
+required to permit it.
+
+Status. Accepted.
+
+---
+
+## ADR-019: Pending work translates scheduling intent, not a stored due tick
+
+Decision. The snapshot records the ticket, the tick work was scheduled at, and the policy revision in
+force at that moment. The correct due tick derives from the historical revision. The defect uses the
+revision in force at snapshot time instead.
+
+Context. The reviewer found the previous shape, "snapshot contains a due tick that the importer parses and
+ignores", too obvious to survive a careful reading.
+
+Alternatives. Store the due tick directly. Omit the revision from the snapshot, which would make the
+correct answer underivable and the task unfair.
+
+Rationale. Policy revisions are ordinary world data with an effective tick, so the historical-versus-
+current distinction arises from time passing rather than from a contrivance. The snapshot carries
+everything needed to compute the right answer, so the task stays fully specified, while the translation
+requires understanding that a scheduling decision is historical. The defect is a wrong lookup, not an
+ignored field: the recorded revision is read and stored, it is simply not the one used for the delay.
+
+Consequences. Policy revisions become part of the public domain model and the public snapshot format.
+The shipped sandbox has no policy change during its lifetime, so this surface is invisible until the
+agent builds the experiment.
+
+Status. Accepted.
+
+---
+
+## ADR-020: Sanitise the hostile tree in place, never copy it as root
+
+Decision. Keep `artifacts = ["/app/"]`. Before any subject process starts, root inspects `/app` without
+following symlinks, rejects symlinks, strips setuid, setgid and sticky bits, normalizes only the
+executable modes the CLI needs, and confirms the entry point exists. The tree is never recursively
+chowned to root and never copied with a default recursive copy. Subject code runs in place.
+
+Context. The reviewer pointed out that a whole-tree artifact can carry symlinks and privilege bits across
+Harbor's transfer, and that root-side copying or chowning converts those into verifier compromise.
+Narrowing the artifact does not help, because Harbor materializes convention artifacts regardless.
+
+Alternatives. Narrow the artifact list. Copy the tree into a scratch directory as root before running.
+
+Rationale. Containment belongs in handling, not in transfer shape. Copying as root is the specific step
+that turns a hostile symlink into a root-side write, so the fix is to not do it.
+
+Consequences. A pre-scan step becomes part of the verifier's critical path, and its failure mode has to be
+specified precisely, which is ADR-021.
+
+Status. Accepted.
+
+---
+
+## ADR-021: Reward zero and verifier error are different outcomes
+
+Decision. A missing or broken artifact transfer is a verifier error: non-zero exit, no reward written. An
+artifact that arrives and violates documented submission policy, such as a symlink or a setuid file, is a
+deterministic reward 0 with a diagnostic and no crash.
+
+Context. Pre-writing zero, which is the common pattern in merged tasks, launders infrastructure failures
+into scoreable zeros.
+
+Alternatives. Pre-write zero and overwrite on success, which is simpler and what several merged tasks do.
+
+Rationale. The employer requirement makes this distinction load-bearing in both directions. Standard
+trials only count when the agent genuinely failed rather than the harness breaking, and every adversarial
+trial has to produce a real zero rather than an accidental one. Collapsing the two outcomes would corrupt
+both records.
+
+Consequences. The reward file is written once, at the end, by root, from an explicit outcome. Nothing
+writes a placeholder.
+
+Status. Accepted.
