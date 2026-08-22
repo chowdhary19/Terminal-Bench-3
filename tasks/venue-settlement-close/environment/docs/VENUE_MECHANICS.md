@@ -53,7 +53,11 @@ Fills are given in ascending `ts`. Ties in `ts` break by ascending `fill_id`.
 
 A spot fill exchanges base for quote at `price`.
 
-    gross_quote = price * quantity            exact rational, quote minor units
+    gross_quote = price * quantity * (quote_minor_per_unit / base_minor_per_unit)
+
+`price` is quoted in whole quote units per whole base unit while `quantity` is in base minor
+units, so the minor-unit ratio converts the product into quote minor units. The result is exact
+rational.
 
 A **BUY** credits `quantity` base units and debits `gross_quote` quote minor units.
 A **SELL** debits `quantity` base units and credits `gross_quote` quote minor units.
@@ -77,7 +81,10 @@ and its magnitude also rounds AWAY_FROM_ZERO.
 `instruments.csv` gives `contract_multiplier` and `settlement_asset` per perpetual instrument.
 A perpetual fill changes the position and realises PnL; it never moves base assets.
 
-    notional = price * quantity * contract_multiplier   exact rational, settlement minor units
+    notional = price * quantity * contract_multiplier * (settlement_minor_per_unit / base_minor_per_unit)
+
+The same minor-unit conversion as section 3.1 applies: the result is in settlement minor units and
+is exact rational. Realised PnL in section 3.3 carries the same conversion.
 
 The fee is charged in the instrument's `settlement_asset`:
 
@@ -95,7 +102,8 @@ average and realises nothing. A fill that decreases the magnitude realises PnL o
 quantity:
 
     closed          = min(|position|, quantity)
-    realised        = closed * contract_multiplier * (exit_price - entry_avg) * direction
+    realised = closed * contract_multiplier * (exit_price - entry_avg) * direction
+               * (settlement_minor_per_unit / base_minor_per_unit)
 
 where `direction` is `+1` if the position being closed was long and `-1` if short, and
 `entry_avg` is the weighted average cost immediately before this fill. Realised PnL rounds
@@ -143,6 +151,7 @@ with `ts` strictly less than the funding timestamp and before any fill with `ts`
 equal to it.
 
     funding = position * contract_multiplier * mark_price * funding_rate
+              * (settlement_minor_per_unit / base_minor_per_unit)
 
 `position` is signed. A positive result is **debited** from the desk; a negative result is
 credited. Funding rounds HALF_EVEN to settlement minor units.
