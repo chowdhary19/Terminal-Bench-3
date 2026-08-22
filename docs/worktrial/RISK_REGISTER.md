@@ -246,21 +246,18 @@ and R3 are the two risks that can force a redesign, and both are only observable
 Keep the application small on purpose. Do not start writing final documentation until trials have run,
 because the failure analysis is the part that cannot be written in advance.
 
-## R10b. Codex trials are blocked on a plan upgrade
+## R10b. Codex entitlement (CLOSED)
 
-The required Codex configuration is `openai/gpt-5.6-sol` at `reasoning_effort=xhigh`. The candidate's
-personal ChatGPT account is on Free, which does not include Sol. Verified empirically: the API returns
-HTTP 400 `The 'gpt-5.6-sol' model is not supported when using Codex with a ChatGPT account`, and the
-account catalog omits Sol entirely. Three of the six required standard trials and one of the two
-adversarial trials cannot run until this is resolved.
+Closed. The candidate upgraded their personal ChatGPT account to Plus and Codex was cleanly
+re-authenticated to it.
 
-Detection. Already detected. `codex debug models` is a zero-cost recheck after any plan change, since the
-catalog is account-scoped.
+Evidence: the account-scoped catalog moved from six models without `gpt-5.6-sol` to eight models with it;
+Sol lists `xhigh`; and one minimal probe at `gpt-5.6-sol` with `model_reasoning_effort=xhigh` returned
+normally at 4,020 tokens, exit 0. The Free-account rejection (`HTTP 400`, "not supported when using Codex
+with a ChatGPT account") no longer occurs.
 
-Mitigation. The candidate upgrades their personal ChatGPT account, then reauthenticates Codex and reruns
-the one-call Sol probe before spending trial budget. Using the employer-managed workspace is not an
-option for a hiring trial. This is a schedule risk rather than a design risk: it blocks nothing in Phase 1,
-and the Claude half of the trials is unaffected. Sequence the work so the Codex trials come last.
+No API key and no employer-managed workspace are involved. All eight required trials are operationally
+unblocked on subscription auth, and both agents are verified against the exact CI configuration.
 
 ## R10c. The redesign consumes the trial schedule
 
@@ -278,36 +275,40 @@ honest account of its difficulty, including the calibration result that shows it
 submission than a well-calibrated redesign but a better one than an unfinished redesign. Sequence the
 Codex plan decision early so it is not discovered on the critical path.
 
-## R13. The pivot arrives too late to finish
+## R13. Schedule (now the governing constraint)
 
-Now the dominant risk, ahead of every design risk in this register. This is the third task family. Two
-implementation days are spent, roughly five remain, and the gateway is estimated at 1.5 to 2.5 days to
-first calibration. After that the schedule needs one calibration read, at least one hardening round, six
-standard trials, two adversarial trials and a written failure analysis. Codex is still blocked on a
-personal plan upgrade that gates three standard and one adversarial trial.
+No longer a risk to manage alongside the others. It is the constraint that decides what ships.
 
-Detection. If the gateway has not reached oracle 1 and nop 0 by the end of day four, the trial budget
-cannot absorb a bad calibration.
+Three days spent, roughly four left, and they must cover implementation, calibration, eight trials and a
+written failure analysis. Three task families have been explored: one solved by Opus in ten and a half
+minutes, one retired on the generalisation of that result, one disproven at its design gate. The Codex
+blocker is now closed, so trials are executable, but there is no longer room for a fourth exploration.
 
-Mitigation. Build the thin slice only, two providers and three tenants and one fault schedule, and run
-the Opus calibration the moment gates pass rather than after polishing. Settle the Codex plan question
-now rather than discovering it on the critical path. Keep the retired migration task and its calibration
-evidence in the repository: a submission that ships a working, fully documented task together with an
-honest account of why it is too easy, and a second design that ran out of runway, is a worse outcome than
-a well-calibrated gateway but a better one than nothing that runs.
+Decision recorded in ADR-030: stop pivoting, harden the Phase 1A task, run the eight trials, and report
+the difficulty result honestly whichever way it lands. The fallback is explicit rather than discovered
+late: a submission that runs, with real trial evidence and a frank analysis, beats a better idea with
+nothing executable behind it.
 
-## R14. The fix turns out to be parametric
+Detection. If hardening plus one calibration has not moved the Opus solve time materially by end of day
+five, stop iterating on difficulty and spend the remainder on trials and documentation.
 
-The gateway design survives the labelled-example test only because the repair is structural. If any
-assignment of constants to the shipped architecture satisfies the contract, a fuzz-guided grid search
-finds it in minutes and the task collapses exactly the way the migration family did, for the same reason.
+## R14. The gateway mechanism does not produce the failure (CLOSED, fatal)
 
-Detection. Before implementation, enumerate every tunable constant in the shipped design and show the
-feasible region is empty. This is a paper exercise on the capacity model and is cheap; skipping it is how
-the previous family's fast path went unnoticed until a live trial.
+Closed by disproof rather than by mitigation, and it killed the design.
 
-Mitigation. The defect must live in what owns capacity and for how long rather than in how much. If the
-enumeration finds a passing assignment, the shipped architecture changes before any code is written.
+The concern was that the gateway repair might be parametric, letting a fuzz-guided grid search find it.
+The pre-implementation gate found something worse: under provider-orphan semantics the shipped
+architecture does not exhibit the failure at all. 432 configurations with a clean no-fault baseline
+produced zero harm to the unaffected provider.
+
+A timeout is a release, so a faulted domain cannot hold the shared worker pool. Orphaned work occupies
+per-provider capacity, which cannot starve a different provider. Cross-domain starvation and orphaning
+pull in opposite directions, and parameters move along that trade-off rather than escaping it. Full
+argument in [GATEWAY_FEASIBILITY_PROOF.md](GATEWAY_FEASIBILITY_PROOF.md); decision in ADR-029.
+
+The general lesson worth keeping: model the failure numerically before designing a task around it. Two of
+the three families were disproven only after real investment, and this one was caught in an afternoon
+because the check ran first.
 
 ## R15. Opus recognises the pattern by name
 

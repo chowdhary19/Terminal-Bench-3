@@ -652,3 +652,81 @@ architectural changes. Revisit only if the gateway turns out to need genuine asy
 itself indicate the deterministic model had been abandoned.
 
 Status. Accepted.
+
+---
+
+## ADR-028: A terminal deadline is terminal
+
+Decision. Once a request reaches its terminal deadline it is finished: no new provider attempt may start
+for it, no retry may be generated, and any delayed retry state is invalidated. Four timing concepts are
+kept distinct: the request terminal deadline, the provider attempt timeout, the internal dispatch lease,
+and retry eligibility.
+
+Context. The first gateway design used "deadline expiry is classified retryable" as its sustaining
+mechanism. Reviewer B rejected that as semantically wrong, and the rejection is correct: retrying work
+whose caller has already given up is not a defensible production behaviour, so a task built on it would
+be teaching the wrong lesson.
+
+Consequences. The feedback loop may not depend on retrying dead work, which removed the original
+sustaining mechanism and forced the search that ADR-029 records the outcome of.
+
+Status. Accepted, and it stands regardless of which task family ships.
+
+---
+
+## ADR-029: The provider-orphan mechanism cannot produce cross-domain metastability
+
+Decision. Record as disproven, before implementation, that provider-side orphaned work can sustain a
+metastable failure across isolation domains.
+
+Context. The gate mandated formalising orphaned downstream work: an attempt timeout means the gateway
+stops waiting, not that the provider stops executing, so the slot stays occupied. That is a real
+production phenomenon and it was modelled faithfully.
+
+Evidence. A scratch model swept 432 configurations across offered load, provider concurrency, attempt
+timeout, backoff, attempt cap and deadline, filtered to those where the no-fault baseline passes cleanly.
+Zero produced harm to the unaffected provider. The condition `Σ P_i > W` is necessary but not sufficient,
+and even `P_i ≥ W` does not produce contention.
+
+Rationale. Three structural facts, none numeric. A timeout is a release, so a faulted domain cannot hold
+the shared bottleneck. Orphaned work occupies provider capacity, which is per-provider and therefore
+cannot starve a different provider. Retry pressure costs one worker-tick per attempt, and attempt volume
+is bounded by the healthy-load assumption. Cross-domain starvation needs the faulted domain to hold the
+shared resource; orphaning needs it to release early. Parameters move along that trade-off, they do not
+escape it.
+
+Consequences. The two-provider formulation is dead. A single-provider multi-tenant variant does exhibit
+the failure, but as a bounded transient rather than an attractor and with a one-insight repair, so it is
+not carried forward either. The parametric-feasibility proof is moot because the premise fails.
+
+Status. Accepted.
+
+---
+
+## ADR-030: Stop pivoting; harden the working task instead
+
+Decision. No fourth task family. The remaining schedule goes to the Phase 1A task, which passes every
+mechanical gate, plus targeted difficulty hardening and the eight required trials.
+
+Context. Three families explored across three days. Family one was solved by Opus in ten and a half
+minutes. Family two was retired on the generalisation of that finding. Family three has now been
+disproven at the design gate before any code was written. Roughly four days remain, and they have to
+cover implementation, calibration, eight trials and a written analysis.
+
+Alternatives. Continue searching for a fourth family. Ship Phase 1A unchanged.
+
+Rationale. The expected value of a fourth search is low: two of three families failed empirically after
+substantial investment, and the third failed on paper. The Phase 1A task already has a hardened verifier,
+a proven anti-cheat boundary, a passing oracle, a failing nop and complete documentation. Its known
+weakness is difficulty, and the levers for that are identified and cheap to try: remove the symptom
+enumeration from the instruction, which violated ADR-002 and handed the agent three targets; stop
+co-locating the defects; and consider adding hidden state the agent cannot observe locally. A submission
+that runs, with eight real trials and an honest difficulty analysis, is a better artifact than a fourth
+abandoned design.
+
+Consequences. The 0-of-3 requirement may not be met. If hardening does not move the calibration
+materially, that is reported as a measured result with the trajectory evidence rather than concealed.
+Every abandoned design and every calibration stays in the repository as the record of how the conclusion
+was reached.
+
+Status. Accepted, pending the candidate's agreement, since it changes what gets submitted.

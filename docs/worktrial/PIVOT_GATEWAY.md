@@ -1,5 +1,13 @@
 # Pivot gate: tool-gateway-metastability
 
+> **Superseded by [GATEWAY_FEASIBILITY_PROOF.md](GATEWAY_FEASIBILITY_PROOF.md).** The
+> pre-implementation gate disproved this document's central mechanism. Sections 6 and 7, the shipped
+> design and the metastable chain, do not hold: a bounded provider fault cannot harm an unaffected
+> provider under provider-orphan semantics, because a timeout releases the shared worker and orphaned
+> work consumes only per-provider capacity. 432 healthy-passing configurations produced zero
+> cross-domain harm. The document is kept for the trivial-solution attack in section 8, the originality
+> scan in section 18 and the reuse audit in section 19, which remain valid.
+
 Design only. Nothing under `tasks/` changes on the strength of this document.
 
 Working name: `tool-gateway-metastability` (three slug tokens, at the cap the slug check enforces).

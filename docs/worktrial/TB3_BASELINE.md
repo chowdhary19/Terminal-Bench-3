@@ -445,29 +445,43 @@ prefix, never as `--ae`.
 For the same reason the OAuth token is better exported than passed as `--ae`: `_get_env` falls through to
 `os.environ`, so exporting works, and it keeps the token out of the process list and shell history.
 
-**Account status: Sol is not available on the personal account.** This is the binding constraint on the
-Codex half of the trials.
+**Account status: resolved. Sol is available on the candidate's personal ChatGPT Plus account.**
 
-The candidate's personal ChatGPT account is on the Free plan. Authenticated cleanly against it,
-`codex exec -m gpt-5.6-sol -c model_reasoning_effort=xhigh` fails with HTTP 400:
+The sequence, recorded because the entitlement changed mid-trial and the earlier finding is now stale:
+
+| Stage | `codex debug models` | `gpt-5.6-sol` | Sol/xhigh probe |
+|-------|----------------------|---------------|-----------------|
+| Employer-managed workspace (out of scope, logged out) | 8 models | listed | succeeded |
+| Personal ChatGPT **Free** | 6 models | **absent** | HTTP 400, see below |
+| Personal ChatGPT **Plus** (current) | 8 models | **listed** | **succeeded** |
+
+On Free the API returned:
 
 ```
-The 'gpt-5.6-sol' model is not supported when using Codex with a ChatGPT account.
+HTTP 400 invalid_request_error
+"The 'gpt-5.6-sol' model is not supported when using Codex with a ChatGPT account."
 ```
 
-The account's model catalog agrees: six models, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`,
-`gpt-5.4-mini`, and two hidden internal entries. No `gpt-5.6-sol`. That matches OpenAI's published plan
-matrix, which gives Terra to Free and Go while listing Sol for Plus, Pro, Business, and Enterprise.
+After the upgrade, a clean re-authentication (`codex logout`, remove the non-secret
+`~/.codex/models_cache.json`, `codex login` through the browser) produced a catalog listing
+`gpt-5.6-sol` with `visibility: list`, no upgrade prompt, and `xhigh` among its supported reasoning
+levels. One minimal probe confirmed the full path end to end:
 
-`codex debug models` is therefore a reliable entitlement check, not merely a catalog listing. It is
-account-scoped: the same command returned eight models including Sol under an employer-managed workspace
-login, and six without Sol under the personal Free login. An earlier note in this file speculated the
-catalog might be global. It is not, and the successful Sol probe recorded earlier ran on the
-employer-managed workspace, which is out of scope for this trial and has been logged out.
+```
+model: gpt-5.6-sol   reasoning effort: xhigh   tokens used: 4,020   exit 0
+```
 
-Consequence: the Codex trials cannot run at the required `openai/gpt-5.6-sol` configuration until the
-candidate upgrades their personal ChatGPT account to a plan that includes Sol. Nothing else in the
-pipeline is blocked.
+`codex debug models` is therefore a reliable, zero-cost entitlement check: the catalog is account-scoped
+and moved from six models to eight across the upgrade.
+
+No API key is required, and no employer-managed workspace is used. Authentication is subscription-based
+through `~/.codex/auth.json`, which is what `CODEX_FORCE_AUTH_JSON=1` reads. The file's contents were
+never opened at any point.
+
+Consequence: **all eight required trials are operationally unblocked** on subscription auth. Both agents
+are now verified against the exact CI configuration, `anthropic/claude-opus-5` at `reasoning_effort=max`
+(proven by the Phase 1A calibration) and `openai/gpt-5.6-sol` at `reasoning_effort=xhigh` (proven by the
+probe above).
 
 ### Smoke test results
 
