@@ -874,3 +874,32 @@ modelled and the repair measured before any verifier, oracle or scenario matrix 
 ordering is ADR-032 and it is now the most valuable process artifact of this trial.
 
 Status. Accepted.
+
+---
+
+## ADR-036: rollout-batch-scheduler rejected; task search closed
+
+Decision. Rejected inside the 90-minute box. Per the gate's stop condition no further family is
+proposed and the search for an original task ends here.
+
+Context. A hidden-instance combinatorial optimisation task over a post-training rollout fleet:
+sequence-dependent adapter and prefix setup costs, deadlines, finite workers, one coherent objective
+combining wasted setup time and weighted tardiness.
+
+Evidence. Simple baselines look badly beaten, 1.16x to 16x the reference across three regimes, and no
+single heuristic wins every regime. But the strongest baseline had run 4,000 iterations against the
+reference's 60,000. At equal budget a naive simulated annealer, one greedy seed plus relocate and swap,
+lands at 1.109x, 0.950x and 1.084x on the three regimes, beating the reference outright on the
+deadline-heavy regime. Adding only multi-alpha seeding reaches median 1.004x there.
+
+Rationale. The apparent gap was search budget, not architecture. The proposed 1.03 to 1.05x threshold is
+already met by the program the gate itself names as the expected Opus first attempt. Strengthening the
+reference would be tuning a threshold to defeat a baseline, which every gate here has forbidden.
+
+The family also cannot escape the oracle property. A public cost simulator must ship or the task is not
+well posed, and `cost(schedule)` is exactly what a metaheuristic needs. Unlike the previous six families,
+where the oracle was incidental, here it is structural.
+
+Consequences. Seventh family rejected. The fallback submission becomes the plan.
+
+Status. Accepted.
