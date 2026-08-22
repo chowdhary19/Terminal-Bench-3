@@ -247,3 +247,53 @@ The revisions the scan forces, carried into the design contract:
 
 6. Do not describe the task as a migration task. It is a continuity task that happens to cross a schema
    version. The framing matters for how a reviewer places it next to the two database tasks above.
+
+
+---
+
+# Addendum: tool-gateway-metastability
+
+Scanned after the migration family was retired. Same method: metadata pass, concept pass over whole task
+trees, then a read pass on anything adjacent.
+
+Concept pass over the 74-task corpus for retry storm, thundering herd, stampede, metastability,
+backpressure, circuit breaker, bulkhead, load shedding, admission control, token bucket, retry budget,
+retry-after, fair scheduling, concurrency limit, queue depth, work amplification and starvation. Every
+load-bearing term returns nothing; the apparent hits are substring noise, such as `429` inside content
+hashes and "tenant" inside data-anonymisation tasks. A separate pass over instruction files for
+scheduling, contention, fairness and priority returns nothing in a systems sense.
+
+## Nearest neighbours
+
+**payments-pipeline-fix** (Software / Systems). Closest on framing: workers, retries, a latency bound,
+distributed systems tags. Its crux is rebuilding pipeline state fast enough after a restart that
+overdraft notifications are neither missed nor duplicated. Nothing feeds back on itself, there is no
+contention between tenants or providers, and the fault is a restart rather than a bounded downstream
+degradation. Overlap is mechanism, not capability.
+
+**live-database-cutover** (Software / Databases). Has real load and latency budgets, and its verifier
+fails on the first customer-visible error. The difficulty is migrating a live store without dropping
+requests, which is a correctness-under-migration problem rather than a stability-under-overload one.
+
+**wal-recovery-ordering** (Software / Databases). Single engine, no contention, no overload, nothing
+generated internally.
+
+**session-window-debug** (Software / Systems). Its symptom list includes output stalling when sources run
+at different rates, which is the only stall in the corpus. The cause is watermark and garbage-collection
+logic in a single-threaded stream processor, not resource contention, and there is no notion of capacity.
+
+**distributed-dedup** (Software / Systems). Grades a Spark job against wall-clock, memory, shuffle and
+join-output budgets. Budgets constrain a batch computation; there is no dynamic feedback and no partial
+failure.
+
+## Verdict
+
+`GO` on originality. No corpus task grades stabilising a retry and admission feedback loop under bounded
+partial failure. Software / Systems is the correct subcategory and is not crowded in this direction: its
+five members are release engineering, Spark deduplication, kernel-level live surgery, pipeline cold start
+and stream windowing.
+
+One caution carried into the design: `payments-pipeline-fix` already owns retries plus workers plus a
+service-level bound in a distributed-systems framing. The distinction has to stay visible in the
+instruction and metadata, which means framing this task as stability under bounded partial failure rather
+than as another retry-correctness task.

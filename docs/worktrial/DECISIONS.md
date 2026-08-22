@@ -574,3 +574,81 @@ reconstruction it forces must stay determinate on every supported profile. That 
 kill criterion.
 
 Status. Accepted.
+
+---
+
+## ADR-025: Abandon the migration family on empirical grounds
+
+Decision. The sandbox migration and replay family is rejected. Both `sandbox-upgrade-continuity` and the
+proposed `sandbox-upgrade-chain` are retired as task candidates. Their implementations, documents and
+calibration evidence stay in the repository as the record of why.
+
+Context. Opus 5 at reasoning max solved the Phase 1A task legitimately in 10 minutes 30 seconds. The
+trajectory attributed that to a pointwise labelled-example generator: for input snapshot X the expected
+output is whatever the shipped correct runtime produces, so every failing case localised to a field and
+credit assignment was free. Redesign 1B proposed removing the generator by decommissioning the legacy
+runtime, which was sound but treated the symptom.
+
+Alternatives. Implement Redesign 1B and calibrate it. Harden Phase 1A further.
+
+Rationale. The independent review and the calibration agree on the deeper point: deterministic
+transformation problems admit pointwise oracles, and where a pointwise oracle exists a frontier agent
+converts the task into a mechanical find-and-fix loop. That is a property of the family, not of any one
+instance, so a third attempt inside it is a poor use of the remaining schedule.
+
+Consequences. Two implementation days are written off, though the verifier harness, the anti-cheat
+boundary and the whole documentation workflow carry forward intact. The selection rule for what replaces
+it is ADR-026.
+
+Status. Accepted.
+
+---
+
+## ADR-026: Select for cheap detection and hard construction
+
+Decision. Task candidates are now selected on one rule: the agent may generate counterexamples freely,
+but counterexample generation must be insufficient to establish global correctness. `tool-gateway-
+metastability` is chosen against that rule.
+
+Context. The failure mode we keep hitting is not weak difficulty in the abstract, it is that the agent
+can manufacture a labelled oracle and let it do the reasoning.
+
+Alternatives. Continue judging candidates on how subtle the defect is, which is what produced two
+too-easy designs.
+
+Rationale. Scheduling and overload problems give a fuzzer a trajectory-level verdict, "this schedule
+starved that tenant", never a label on any individual scheduling decision. Credit assignment stays with
+the engineer. Sampling schedules is also evidence rather than proof for a property quantified over
+schedules.
+
+Consequences. One derived constraint becomes load-bearing and is a verification obligation before
+implementation: the repair must be structural rather than parametric. If any assignment of constants to
+the shipped architecture satisfies the contract, a fuzz-guided grid search finds it in minutes and the
+design fails. The feasible region must be shown empty first.
+
+Status. Accepted.
+
+---
+
+## ADR-027: Python for the gateway, against the stated preference
+
+Decision. Implement the gateway simulation in Python rather than TypeScript.
+
+Context. The brief prefers TypeScript for asynchronous request lifecycles, cancellation, scheduling and
+provider adapters, and allows Python where repository evidence shows it materially reduces incidental
+complexity.
+
+Alternatives. TypeScript on Node with a pinned toolchain.
+
+Rationale. The design forbids real asynchrony: it is a deterministic event queue over integer ticks with
+no threads, no promises and no wall clock, because that is what makes the verifier exact and the agent's
+reproductions reliable. The TypeScript advantage applies to the machinery we deliberately removed.
+Meanwhile the verifier harness, the pytest and CTRF tooling the static checks enforce, and every reusable
+piece from Phase 1A are Python; there is no build step to pin; and no `node_modules` tree lands in the
+`/app` artifact, which the `artifact_efficiency` criterion flags directly.
+
+Consequences. The verifier invokes the subject through a CLI subprocess either way, so nothing
+architectural changes. Revisit only if the gateway turns out to need genuine async semantics, which would
+itself indicate the deterministic model had been abandoned.
+
+Status. Accepted.

@@ -278,6 +278,52 @@ honest account of its difficulty, including the calibration result that shows it
 submission than a well-calibrated redesign but a better one than an unfinished redesign. Sequence the
 Codex plan decision early so it is not discovered on the critical path.
 
+## R13. The pivot arrives too late to finish
+
+Now the dominant risk, ahead of every design risk in this register. This is the third task family. Two
+implementation days are spent, roughly five remain, and the gateway is estimated at 1.5 to 2.5 days to
+first calibration. After that the schedule needs one calibration read, at least one hardening round, six
+standard trials, two adversarial trials and a written failure analysis. Codex is still blocked on a
+personal plan upgrade that gates three standard and one adversarial trial.
+
+Detection. If the gateway has not reached oracle 1 and nop 0 by the end of day four, the trial budget
+cannot absorb a bad calibration.
+
+Mitigation. Build the thin slice only, two providers and three tenants and one fault schedule, and run
+the Opus calibration the moment gates pass rather than after polishing. Settle the Codex plan question
+now rather than discovering it on the critical path. Keep the retired migration task and its calibration
+evidence in the repository: a submission that ships a working, fully documented task together with an
+honest account of why it is too easy, and a second design that ran out of runway, is a worse outcome than
+a well-calibrated gateway but a better one than nothing that runs.
+
+## R14. The fix turns out to be parametric
+
+The gateway design survives the labelled-example test only because the repair is structural. If any
+assignment of constants to the shipped architecture satisfies the contract, a fuzz-guided grid search
+finds it in minutes and the task collapses exactly the way the migration family did, for the same reason.
+
+Detection. Before implementation, enumerate every tunable constant in the shipped design and show the
+feasible region is empty. This is a paper exercise on the capacity model and is cheap; skipping it is how
+the previous family's fast path went unnoticed until a live trial.
+
+Mitigation. The defect must live in what owns capacity and for how long rather than in how much. If the
+enumeration finds a passing assignment, the shipped architecture changes before any code is written.
+
+## R15. Opus recognises the pattern by name
+
+Metastable failure under retry amplification is well documented and Opus will recognise it immediately.
+Pattern recognition alone must not be sufficient.
+
+Detection. The calibration trajectory. If the first patch is bulkheads plus a retry budget and it passes,
+the design failed. The intended shape is that the first patch fixes the trigger and the control schedules
+still fail because the sustaining mechanism is elsewhere.
+
+Mitigation. The trigger and the sustaining mechanism are deliberately different: retry re-entry at the
+queue head triggers the collapse, while deadline expiry classified as retryable sustains it after the
+fault clears. A canonical bulkhead-and-budget pass fixes the first and leaves the second. Keeping those
+separable is a design obligation, not an accident, and it is the first thing to check if calibration
+comes back clean.
+
 ## R11. Host architecture differs from CI
 
 Local development is arm64 Apple Silicon. TB3 CI runners and the Modal backend are x86-64. A task that
