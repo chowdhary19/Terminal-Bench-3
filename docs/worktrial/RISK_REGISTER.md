@@ -327,25 +327,25 @@ comes back clean.
 
 ## R16. No candidate family has cleared the difficulty bar (OPEN, decisive)
 
-Four families evaluated. One solved by Opus in 10m30s, one retired on the generalisation of that, one
-with its mechanism disproven by sweep, one rejected on paper by exhaustive check. Originality was clean
-for all four; difficulty was the binding constraint every time.
+Five families evaluated, four against evidence. Originality was clean every time; difficulty was binding
+every time. Full table in ADR-034.
 
-The common cause, stated once: a task is easy for a frontier agent whenever the agent can construct
-something that **labels the repair**. A pointwise output oracle, a differential fuzzer, and a model
-checker naming the two steps that raced are all the same thing from the agent's side. Three deliberate
-attempts to engineer that absence into a small codebase have failed.
+Two distinct causes, not one. For the four debugging families: a task is easy whenever the agent can
+construct something that labels the repair, and a pointwise oracle, a differential fuzzer and a model
+checker are the same object from the agent's side. For the construction family: the competent first move
+was also the winning move, because a general-purpose compressor already captured the redundancy the
+application-specific design was meant to add.
 
-Detection. Already detected, four times, with decreasing cost each time as the empirical check moved
-earlier.
+Detection. Already detected five times, at steadily decreasing cost as the empirical check moved earlier:
+two implementation days, then an afternoon, then under an hour, then a single measurement pass.
 
-Mitigation. Two honest options remain, and the choice is the candidate's because it decides what gets
-submitted. Either accept a domain where difficulty is inherent rather than engineered, which means real
-scale, formal proof, or deep specialist knowledge, and accept that four days is not much runway for it.
-Or ship the Phase 1A task, which passes every mechanical gate, with the eight required trials and a
-written analysis that reports its difficulty result honestly, including the calibration showing a
-ten-minute solve. The second is a weaker task and a stronger, more truthful submission, and the record of
-four families and how each was disproven is itself substantive evidence of method.
+Mitigation. Two honest options remain and the choice decides what is submitted, so it is the candidate's.
+Accept a domain where difficulty is inherent rather than engineered, which means real scale, formal
+proof, or deep specialist knowledge, and accept that the remaining runway is thin for it. Or ship the
+Phase 1A task, which passes every mechanical gate, with the eight required trials and an analysis that
+reports its difficulty honestly, including the calibration showing a ten-minute solve. The second is a
+weaker task and a more truthful submission, and the record of five families with the evidence that
+disproved each is itself substantive.
 
 ## R11. Host architecture differs from CI
 

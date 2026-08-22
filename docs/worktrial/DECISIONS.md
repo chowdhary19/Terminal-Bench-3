@@ -784,3 +784,63 @@ Consequences. The spike comes first, the design document second. This is cheap, 
 is the practice worth carrying out of this trial regardless of what ships.
 
 Status. Accepted.
+
+---
+
+## ADR-033: The trajectory store is rejected on measurement
+
+Decision. `trajectory-store` is rejected. No task directory is created.
+
+Context. It was proposed as a construction and optimisation task rather than a debugging one, on the
+theory that Pareto-frontier navigation gives an agent only low-resolution feedback.
+
+Evidence. A scratch spike built three realistic workload regimes, six baselines and a reference
+prototype, and measured size, build memory, build time, random trajectory access and range access. In
+the mixed regime the reference reached 4.4 MB at 6.4 ms per query against whole-corpus LZMA at 3.8 MB and
+0.10 ms. In the prefix-heavy regime, the case the reference architecture is designed to win, it was both
+larger and 57 times slower. The strongest generic answer, whole-file LZMA with a decompress-once open
+path and an mmap offset index, achieved best size and best random access simultaneously.
+
+Rationale. Structural interning and content addressing remove redundancy a large-window dictionary
+compressor already removes, and remove it less well, while the block structure needed for random access
+shrinks the compressor's effective window. The one axis where application structure should win, random
+access without full decode, is defeated by decoding once into scratch and indexing.
+
+Consequences. Kill conditions 1, 5, 6 and 8 all fire. Making the generic answer fail would require a
+tight resident-memory bound and a ban on scratch files, numbers chosen to defeat a baseline rather than
+derived from the problem.
+
+Status. Accepted.
+
+---
+
+## ADR-034: Five families, one cause
+
+Decision. Record the common finding across every rejected family, because it is the substantive result of
+the search and it should not have to be rediscovered.
+
+The families, and how each was settled:
+
+| Family | Outcome | Settled by |
+|--------|---------|-----------|
+| Sandbox migration | Solved in 10m30s | Live Opus calibration |
+| Migration chain | Retired | Generalisation of the above |
+| Gateway metastability | Mechanism disproven | 432-configuration sweep |
+| Credit broker | Rejected on paper | 240-state exhaustive check |
+| Trajectory store | Rejected on measurement | Six baselines across three regimes |
+
+Originality was clean for all five. Difficulty was binding for all five.
+
+For the four debugging families the cause is one thing: a task is easy for a frontier agent whenever the
+agent can construct something that **labels the repair**. A pointwise output oracle, a differential
+fuzzer, and a model checker naming the two steps that raced are the same object from the agent's side.
+The trajectory store was chosen specifically to avoid that, and failed differently and more simply: the
+competent first move was also the winning move, because a general-purpose compressor already does what
+the application-specific design was supposed to add.
+
+The corpus is consistent with both readings. Tasks that are genuinely beyond frontier carry inherent
+depth: 16 to 60 hours of expert time, formal proof, deep regulatory or scientific knowledge, or real
+scale. Small codebase plus subtle defect, and small codebase plus clever representation, are both shapes
+frontier agents are strongest at.
+
+Status. Accepted as the record.

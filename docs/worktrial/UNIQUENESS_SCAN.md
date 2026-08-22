@@ -318,3 +318,20 @@ are durable, an ordering discipline inside one engine.
 Neither grades concurrent bounded streaming ownership under cancellation and restart, so originality is
 `GO`. It was not the binding constraint: the family was rejected on difficulty, in
 [FINAL_CONCURRENCY_PIVOT.md](FINAL_CONCURRENCY_PIVOT.md).
+
+
+---
+
+# Addendum: trajectory-store
+
+Scanned for compression, archive, deduplication, content-addressed storage, random access, index,
+serialisation, trajectory, log store, prefix sharing, storage engine and columnar formats.
+
+`rs-archive-clone` is black-box reimplementation of an archive tool's exact behaviour, including error
+handling on malformed input; it is not compact storage design. `distributed-dedup` grades a Spark
+near-duplicate pipeline against wall-clock, memory and shuffle budgets. No corpus task grades
+application-specific compact storage under simultaneous exactness, random-access, memory and size
+constraints.
+
+Originality `GO`. It was not the binding constraint: the family was rejected on measurement in
+[TRAJECTORY_STORE_SPIKE.md](TRAJECTORY_STORE_SPIKE.md).
