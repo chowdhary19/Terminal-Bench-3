@@ -47,7 +47,8 @@ quantity, liquidity, self_trade`.
 - `price` is a decimal string in quote units per base unit.
 - `quantity` is an integer in base units.
 
-Fills are given in ascending `ts`. Ties in `ts` break by ascending `fill_id`.
+Ties in `ts` between fills break by ascending `fill_id`. Where a fill, a funding event and a
+transfer share a timestamp, they are applied fills first, then funding, then transfers.
 
 ### 3.1 Spot fills (venue MSPOT)
 
@@ -146,9 +147,10 @@ Days inside the period contribute from that day's own fills.
 `funding_events.csv` gives, per event: `funding_id, ts, instrument, funding_rate, mark_price`.
 Meridian funds every 8 hours at 00:00, 08:00 and 16:00 UTC.
 
-Funding is charged on the position **as it stands at the funding timestamp**, after every fill
-with `ts` strictly less than the funding timestamp and before any fill with `ts` greater than or
-equal to it.
+Funding is charged on the position **as it stands at the funding timestamp**, once every fill
+carrying that same timestamp has been applied. Events sharing a timestamp are applied fills
+first, then funding, then transfers, so a fill timestamped exactly at a funding time is part of
+the position that funding is charged on.
 
     funding = position * contract_multiplier * mark_price * funding_rate
               * (settlement_minor_per_unit / base_minor_per_unit)
