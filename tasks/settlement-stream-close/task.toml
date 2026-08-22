@@ -29,9 +29,11 @@ integer minor units. Spot fees are charged in the asset the fill delivers, so a 
 and a sell in quote. The tier is snapshotted once per UTC day rather than recomputed per fill, \
 rebated maker volume counts toward it and self-trades do not, and the boundary is inclusive. \
 Rounding differs by quantity: fees away from zero, notional and funding half to even, realised PnL \
-truncated. Each wrong convention produces a plausible number rather than a visible error. Finally \
-the engine is run against a period it has never been shown, so an implementation tuned to the \
-visible data does not survive.
+truncated. Each wrong convention produces a plausible number rather than a visible error. There is also a twenty-minute budget per period, stated in the instruction \
+and generous against a reference that settles this period in under a minute, which rules out a \
+bounded-memory design that pays for the bound with pathological constant factors. Finally the \
+engine is run against a period it has never been shown, so an implementation tuned to the visible \
+data does not survive.
 """
 solution_explanation = """
 Order the fills outside memory. Read the shards in bounded slices, sort each slice by timestamp \

@@ -30,6 +30,9 @@ The export is what the venue actually sends, not a tidy extract:
 - The period is large. `--max-memory` is a hard ceiling on the engine's peak resident set size
   across its whole process tree, and it is measured while the engine runs. Exceeding it fails the
   close, however correct the figures are.
+- Each period must settle within **20 minutes**. The desk closes several periods in a batch, so an
+  engine that needs hours is no use even if its figures are right. A straightforward implementation
+  settles the period in `/app/inputs/` in well under a minute.
 - The engine settles any period Meridian sends, not only this one. It is run against periods that
   are not in `/app/inputs/`, so nothing may be specialised to the data you can see.
 - Two runs over the same period must produce byte-identical output.
