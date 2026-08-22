@@ -730,3 +730,57 @@ Every abandoned design and every calibration stays in the repository as the reco
 was reached.
 
 Status. Accepted, pending the candidate's agreement, since it changes what gets submitted.
+
+---
+
+## ADR-031: The credit broker is rejected before implementation
+
+Decision. `tool-stream-credit-broker` is rejected on paper. No task directory is created.
+
+Context. It was proposed as the final family, selected on evidence that LLM-generated concurrent code
+remains vulnerable to races, deadlocks and starvation.
+
+Evidence. Two gates from the brief itself, both settled empirically in a scratch interleaving model. The
+global-lock attack: one broker-wide lock with a condition variable and a generation counter satisfies all
+four graded properties, verified exhaustively over 240 states with zero violations. The repair-size gate:
+the complete diff from a racy broker to a correct one is eleven lines of generation and terminal guards
+on top of the standard pattern.
+
+Rationale. Property D, independent progress, was expected to punish coarse locking and does not, because
+waiting on a condition variable releases the lock. That is definitional, not accidental. More generally,
+in a bounded-interleaving model a global lock serialises atomic steps and preserves every safety and
+liveness property; what it loses is throughput, which is a timing property the brief correctly forbids
+grading. There is no semantic progress property left that a single-lock design fails.
+
+The design also fails the labelled-generator test that motivated the entire search, and fails it worse
+than its predecessors. An interleaving explorer returns the two steps that raced, which is a pointwise
+label on a repair site. A model checker is a stronger labelled repair oracle than the differential fuzzer
+that solved the first family in ten minutes.
+
+Consequences. Four families evaluated, three against evidence. The common finding is that a task is easy
+for a frontier agent whenever the agent can build something that labels the repair. Engineering that
+absence into a small codebase has failed three times, which is itself the most useful result of the
+trial.
+
+Status. Accepted.
+
+---
+
+## ADR-032: Model the failure before designing the task around it
+
+Decision. Any future candidate must have its central failure mode demonstrated numerically, in a scratch
+model, before any task code is written.
+
+Context. Family one cost two implementation days and was disproven by a live calibration. Family three
+was disproven by an afternoon's sweep. Family four was disproven by a 240-state check in under an hour.
+The cost of being wrong fell by an order of magnitude each time the check moved earlier.
+
+Rationale. Design review, including hostile review, did not catch any of the three. In every case the
+argument sounded right and the numbers disagreed. Reviewer B's condition on shared capacity is the
+sharpest example: it was correct in direction, necessary, and still not sufficient, which only the sweep
+revealed.
+
+Consequences. The spike comes first, the design document second. This is cheap, it is repeatable, and it
+is the practice worth carrying out of this trial regardless of what ships.
+
+Status. Accepted.

@@ -325,6 +325,28 @@ fault clears. A canonical bulkhead-and-budget pass fixes the first and leaves th
 separable is a design obligation, not an accident, and it is the first thing to check if calibration
 comes back clean.
 
+## R16. No candidate family has cleared the difficulty bar (OPEN, decisive)
+
+Four families evaluated. One solved by Opus in 10m30s, one retired on the generalisation of that, one
+with its mechanism disproven by sweep, one rejected on paper by exhaustive check. Originality was clean
+for all four; difficulty was the binding constraint every time.
+
+The common cause, stated once: a task is easy for a frontier agent whenever the agent can construct
+something that **labels the repair**. A pointwise output oracle, a differential fuzzer, and a model
+checker naming the two steps that raced are all the same thing from the agent's side. Three deliberate
+attempts to engineer that absence into a small codebase have failed.
+
+Detection. Already detected, four times, with decreasing cost each time as the empirical check moved
+earlier.
+
+Mitigation. Two honest options remain, and the choice is the candidate's because it decides what gets
+submitted. Either accept a domain where difficulty is inherent rather than engineered, which means real
+scale, formal proof, or deep specialist knowledge, and accept that four days is not much runway for it.
+Or ship the Phase 1A task, which passes every mechanical gate, with the eight required trials and a
+written analysis that reports its difficulty result honestly, including the calibration showing a
+ten-minute solve. The second is a weaker task and a stronger, more truthful submission, and the record of
+four families and how each was disproven is itself substantive evidence of method.
+
 ## R11. Host architecture differs from CI
 
 Local development is arm64 Apple Silicon. TB3 CI runners and the Modal backend are x86-64. A task that

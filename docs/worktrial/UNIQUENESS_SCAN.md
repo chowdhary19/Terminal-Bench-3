@@ -297,3 +297,24 @@ One caution carried into the design: `payments-pipeline-fix` already owns retrie
 service-level bound in a distributed-systems framing. The distinction has to stay visible in the
 instruction and metadata, which means framing this task as stability under bounded partial failure rather
 than as another retry-correctness task.
+
+
+---
+
+# Addendum: tool-stream-credit-broker
+
+Scanned for race condition, data race, deadlock, livelock, linearizability, concurrency, mutex,
+lock-free, atomic, producer-consumer, bounded buffer, backpressure, multiplexer, stream broker, buffer
+credits, cancellation, generation, ABA, thread safety, happens-before, memory model, interleaving and
+model checking. Most hits are substring noise: "ABA" inside other words, "generation" as "generate",
+"atomic" in chemistry tasks.
+
+Two real neighbours. **kv-live-surgery** is the corpus's genuine concurrency task, replacing a live
+key-value server under load without breaking in-flight requests, carrying mutex, lock-free and atomic
+vocabulary; its crux is live process surgery rather than ownership under cancellation.
+**wal-recovery-ordering** requires that concurrent higher-LSN writers not expose state before lower LSNs
+are durable, an ordering discipline inside one engine.
+
+Neither grades concurrent bounded streaming ownership under cancellation and restart, so originality is
+`GO`. It was not the binding constraint: the family was rejected on difficulty, in
+[FINAL_CONCURRENCY_PIVOT.md](FINAL_CONCURRENCY_PIVOT.md).
