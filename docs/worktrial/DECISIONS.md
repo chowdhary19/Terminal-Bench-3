@@ -844,3 +844,33 @@ scale. Small codebase plus subtle defect, and small codebase plus clever represe
 frontier agents are strongest at.
 
 Status. Accepted as the record.
+
+---
+
+## ADR-035: tool-session-failover rejected during build
+
+Decision. Rejected after implementing the starter and measuring the repair. The task directory was
+removed; the prototype is preserved in scratch.
+
+Context. Proposed as a final construction attempt: a real multi-process tool-execution service where a
+logical call must survive client disconnect and gateway process failure. Real processes, real HTTP, real
+shared SQLite in WAL mode, deterministic failpoints driven from durable state rather than sleeps.
+
+Evidence. The failure geometry is genuine. The starter duplicates a provider side effect after a
+mid-flight process death, loses terminal state across processes, and cannot cancel a call from a second
+process. But the complete repair measures **29 lines**: one line for a stable idempotency key derived
+from the logical call id, eight to allocate the event sequence in a transaction and commit terminal
+state atomically, and about twenty to read call state and the cancel flag from the database instead of a
+process dict. Verified by applying it and re-running every scenario.
+
+Rationale. Every element of that repair is a standard pattern a backend engineer applies by reflex. The
+task also hands the agent a constructible oracle: the provider exposes an effect log, the database is
+inspectable, and gateway processes are restartable by the agent, so it can build the same scratch driver
+used here in about fifteen minutes, and every counterexample localises the repair exactly. Estimated
+Opus at maximum reasoning: well under thirty minutes.
+
+Consequences. Sixth family rejected, and the fastest yet at about forty minutes, because the failure was
+modelled and the repair measured before any verifier, oracle or scenario matrix was written. That
+ordering is ADR-032 and it is now the most valuable process artifact of this trial.
+
+Status. Accepted.

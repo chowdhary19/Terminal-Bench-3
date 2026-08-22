@@ -327,6 +327,18 @@ comes back clean.
 
 ## R16. No candidate family has cleared the difficulty bar (OPEN, decisive)
 
+Six families evaluated, five settled against evidence, plus three probes of existing corpus tasks that
+all passed cleanly. Originality was clean every time; difficulty was binding every time. Full tables in
+ADR-034 and ADR-035.
+
+The three Opus probes matter as much as the six rejections. `telecom-entity-resolution`,
+`formal-crypto` and `vf2-speedup-networkx` were selected to test three different published failure
+mechanisms, and all three passed at 40 to 58 percent of budget with large margins. Every one of them
+shipped the agent something from which it could construct ground truth: an SSN anchor, the cipher
+source, NetworkX itself. `vf2` added a further finding: even where the feedback signal was genuinely
+low-resolution, a single scalar speed gate, the agent did not need to search, because it computed the
+required budget from a measured baseline and designed to it directly.
+
 Five families evaluated, four against evidence. Originality was clean every time; difficulty was binding
 every time. Full table in ADR-034.
 
