@@ -33,8 +33,16 @@ ATTR_COLS = ["fill_id", "account", "instrument", "counterparty", "notional_usd"]
 REPORTS = {
     "attribution.csv": (ATTR_COLS, 1),
     "positions.csv": (["as_of", "account", "instrument", "net_quantity", "gross_quantity"], 3),
-    "fees.csv": (["as_of", "account", "venue", "fee_usd"], 3),
-    "exposure.csv": (["as_of", "account", "settlement_asset", "net_exposure_usd"], 3),
+    "fees.csv": (["as_of", "account", "venue", "fee_usd", "commission_usd"], 3),
+    "exposure.csv": (["as_of", "account", "settlement_asset", "net_exposure_usd",
+                      "gross_exposure_usd", "haircut_usd", "net_after_haircut_usd"], 3),
+    "counterparty_exposure.csv": (["as_of", "counterparty", "settlement_asset",
+                                   "net_exposure_usd", "gross_exposure_usd"], 3),
+    "netting_exposure.csv": (["as_of", "netting_set", "settlement_asset",
+                              "net_exposure_usd", "gross_exposure_usd"], 3),
+    "venue_summary.csv": (["as_of", "venue", "fill_count", "gross_notional_usd",
+                           "fee_usd", "commission_usd"], 2),
+    "margin.csv": (["as_of", "account", "initial_margin_usd"], 2),
 }
 
 
