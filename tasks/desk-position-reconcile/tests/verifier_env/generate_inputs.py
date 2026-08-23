@@ -53,32 +53,42 @@ def build(seed: int, n_accounts: int, n_rollups: int, n_links: int, n_fills: int
     for l in links:
         by_venue.setdefault(l["venue"], []).append(l)
 
-    # Symbols are renamed over time and renames chain, so the symbol printed on a
-    # fill is whatever the instrument was called that day.
-    symbol_history = {s: [(D0.isoformat(), s)] for s in BASE_SYMBOLS}
-    remaps = []
-    for k, s in enumerate(BASE_SYMBOLS):
+    # An instrument keeps its id for life. Its ticker is renamed from a date, and
+    # renames compose, so instrument_symbols.csv is the full symbol history.
+    instruments = [dict(instrument_id=f"INS{i:04d}", asset_class="perp" if "PERP" in s else "spot")
+                   for i, s in enumerate(BASE_SYMBOLS)]
+    id_of = {s: instruments[i]["instrument_id"] for i, s in enumerate(BASE_SYMBOLS)}
+    symbol_rows, symbol_history = [], {}
+    for s in BASE_SYMBOLS:
+        iid = id_of[s]
+        hist = [(D0.isoformat(), s)]
+        symbol_rows.append(dict(instrument_id=iid, symbol=s, effective_from=D0.isoformat()))
         cur = s
+        last_day = 40
         for j in range(r.randrange(0, 3)):
-            new = f"{s.split('-')[0]}{j+1}-{s.split('-')[1]}"
-            eff = (D0 + timedelta(days=r.randrange(40, days - 20))).isoformat()
-            remaps.append(dict(old_symbol=cur, new_symbol=new, effective_from=eff))
-            symbol_history[s].append((eff, new))
-            cur = new
-    remaps.sort(key=lambda x: (x["effective_from"], x["old_symbol"]))
+            new_sym = f"{s.split('-')[0]}{j+1}-{s.split('-')[1]}"
+            # A rename cannot take effect before the rename it supersedes.
+            last_day = r.randrange(last_day, max(last_day + 1, days - 20))
+            eff = (D0 + timedelta(days=last_day)).isoformat()
+            last_day += 1
+            symbol_rows.append(dict(instrument_id=iid, symbol=new_sym, effective_from=eff))
+            hist.append((eff, new_sym))
+            cur = new_sym
+        symbol_history[s] = hist
+    symbol_rows.sort(key=lambda x: (x["instrument_id"], x["effective_from"]))
 
     # Contract terms are revised, and a revision applies from its date.
     revisions = []
     for s in BASE_SYMBOLS:
-        revisions.append(dict(instrument=s, effective_from=D0.isoformat(),
+        revisions.append(dict(instrument_id=id_of[s], effective_from=D0.isoformat(),
                               contract_multiplier=r.choice([1, 1, 10]),
                               settlement_asset=ASSETS[r.randrange(len(ASSETS))]))
         if r.random() < 0.6:
-            revisions.append(dict(instrument=s,
+            revisions.append(dict(instrument_id=id_of[s],
                                   effective_from=(D0 + timedelta(days=r.randrange(60, days - 30))).isoformat(),
                                   contract_multiplier=r.choice([1, 10, 100]),
                                   settlement_asset=ASSETS[r.randrange(len(ASSETS))]))
-    revisions.sort(key=lambda x: (x["instrument"], x["effective_from"]))
+    revisions.sort(key=lambda x: (x["instrument_id"], x["effective_from"]))
 
     # Counterparties are reassigned to new legal entity identifiers, and those
     # reassignments chain too.
@@ -107,15 +117,15 @@ def build(seed: int, n_accounts: int, n_rollups: int, n_links: int, n_fills: int
     BASE_RATE = {"USDT": 1.0, "USDC": 1.0, "BTC": 64000.0, "ETH": 3200.0}
     rev_by_inst = {}
     for rv in revisions:
-        rev_by_inst.setdefault(rv["instrument"], []).append(rv)
+        rev_by_inst.setdefault(rv["instrument_id"], []).append(rv)
 
     def terms_on(root, when):
         """Contract terms in force for an instrument on a date."""
         best = None
-        for rv in rev_by_inst.get(root, []):
+        for rv in rev_by_inst.get(id_of[root], []):
             if rv["effective_from"] <= when:
                 best = rv
-        return best or rev_by_inst[root][0]
+        return best or rev_by_inst[id_of[root]][0]
 
     def symbol_on(root, when):
         cur = root
@@ -155,7 +165,9 @@ def build(seed: int, n_accounts: int, n_rollups: int, n_links: int, n_fills: int
             price=f"{price:.6f}", fee=f"{fee:.6f}"))
     snapshots = [(D0 + timedelta(days=d)).isoformat() for d in (90, 181, 273, days)]
     return dict(accounts=accounts, rollups=rollups, links=links, fills=fills,
-                remaps=remaps, revisions=revisions, cp_reassign=cp_reassign, fx=fx,
+                instruments=instruments, symbol_rows=symbol_rows,
+                counterparties=[dict(lei=l) for l in leis],
+                revisions=revisions, cp_reassign=cp_reassign, fx=fx,
                 report_date=(D0 + timedelta(days=days)).isoformat(),
                 snapshot_dates=snapshots)
 
@@ -175,9 +187,11 @@ def write(d, outdir, shards, rng):
     w("accounts.csv", [dict(account=a) for a in d["accounts"]], ["account"])
     w("account_rollups.csv", d["rollups"], ["donor", "survivor", "effective_from"])
     w("venue_account_map.csv", d["links"], ["venue", "venue_code", "account", "effective_from"])
-    w("instrument_remaps.csv", d["remaps"], ["old_symbol", "new_symbol", "effective_from"])
+    w("instruments.csv", d["instruments"], ["instrument_id", "asset_class"])
+    w("instrument_symbols.csv", d["symbol_rows"], ["instrument_id", "symbol", "effective_from"])
+    w("counterparties.csv", d["counterparties"], ["lei"])
     w("contract_revisions.csv", d["revisions"],
-      ["instrument", "effective_from", "contract_multiplier", "settlement_asset"])
+      ["instrument_id", "effective_from", "contract_multiplier", "settlement_asset"])
     w("counterparty_reassignments.csv", d["cp_reassign"], ["old_lei", "new_lei", "effective_from"])
     w("fx_rates.csv", d["fx"], ["utc_date", "asset", "rate_usd"])
 

@@ -28,11 +28,13 @@ SAMPLE = Path("/tests/data/sample")
 OUT = Path("/tmp/verify")
 
 ATTR_COLS = ["fill_id", "account", "instrument", "counterparty", "notional_usd"]
+# columns, and how many leading columns form the report's grain. The grain is
+# stated rather than derived, so a report can never be compared on a partial key.
 REPORTS = {
-    "attribution.csv": ATTR_COLS,
-    "positions.csv": ["as_of", "account", "instrument", "net_quantity", "gross_quantity"],
-    "fees.csv": ["as_of", "account", "venue", "fee_usd"],
-    "exposure.csv": ["as_of", "account", "settlement_asset", "net_exposure_usd"],
+    "attribution.csv": (ATTR_COLS, 1),
+    "positions.csv": (["as_of", "account", "instrument", "net_quantity", "gross_quantity"], 3),
+    "fees.csv": (["as_of", "account", "venue", "fee_usd"], 3),
+    "exposure.csv": (["as_of", "account", "settlement_asset", "net_exposure_usd"], 3),
 }
 
 
@@ -145,10 +147,11 @@ def test_every_fill_is_attributed(runs):
 def test_every_report_matches(runs):
     """Every report the policy defines, compared exactly."""
     problems = []
-    for name, cols in REPORTS.items():
+    for name, (cols, k) in REPORTS.items():
         got = read_csv(runs["main"].outdir / name, cols)
         want = read_csv(MAIN / "golden" / name, cols)
-        k = len(cols) - (1 if name == "attribution.csv" else 2)
+        assert len(got) == len({tuple(r[:k]) for r in got}), (
+            f"{name} repeats its grain key; each {cols[:k]} must appear once")
         gd = {tuple(r[:k]): tuple(r[k:]) for r in got}
         wd = {tuple(r[:k]): tuple(r[k:]) for r in want}
         missing, extra = set(wd) - set(gd), set(gd) - set(wd)

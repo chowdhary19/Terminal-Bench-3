@@ -19,7 +19,18 @@ def collapsed_attribution(indir: str) -> dict[str, tuple]:
         return d
 
     roll = edges("account_rollups.csv", "donor", "survivor")
-    remap = edges("instrument_remaps.csv", "old_symbol", "new_symbol")
+    # latest symbol an instrument ever carries, ignoring when each took effect
+    import collections
+    hist = collections.defaultdict(list)
+    with open(f"{indir}/instrument_symbols.csv", newline="") as f:
+        for r in csv.DictReader(f):
+            hist[r["instrument_id"]].append((r["effective_from"], r["symbol"]))
+    latest_symbol, id_of_symbol = {}, {}
+    for iid, rows in hist.items():
+        rows.sort()
+        latest_symbol[iid] = rows[-1][1]
+        for _e, s in rows:
+            id_of_symbol[s] = iid
     cpr = edges("counterparty_reassignments.csv", "old_lei", "new_lei")
     link = {}
     with open(f"{indir}/venue_account_map.csv", newline="") as f:
@@ -37,7 +48,7 @@ def collapsed_attribution(indir: str) -> dict[str, tuple]:
         with open(p, newline="") as f:
             for r in csv.DictReader(f):
                 a = walk(roll, link.get((r["venue"], r["account_ref"]), r["account_ref"]))
-                i = walk(remap, r["instrument"])
+                i = latest_symbol.get(id_of_symbol.get(r["instrument"], ""), r["instrument"])
                 c = walk(cpr, r["counterparty_lei"])
                 out[r["fill_id"]] = (a, i, c)
     return out
