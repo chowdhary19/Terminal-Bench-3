@@ -36,7 +36,12 @@ def venue():
 
 @pytest.fixture(scope="module")
 def ledger():
-    return _load(LEDGER)
+    d = _load(LEDGER)
+    if d.get("schema_broken"):
+        pytest.fail(
+            "the ledger no longer has the schema the desk was given, so the session "
+            f"cannot be reconciled at all: {str(d.get('error'))[:300]}")
+    return d
 
 
 @pytest.fixture(scope="module")

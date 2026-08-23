@@ -76,7 +76,13 @@ environment_mode = "separate"
 
 [[verifier.collect]]
 service = "ledger"
-command = '''psql -U desk -d ledger -tAqc "SELECT json_build_object(
+command = '''set -u
+# Postgres itself being down is infrastructure: write nothing and let the
+# verifier surface an error. A query that fails while postgres is healthy means
+# the schema the desk was given is no longer there, which is the desk's doing
+# and is scored, not excused.
+pg_isready -U desk -d ledger >/dev/null 2>&1 || exit 1
+if ! psql -U desk -d ledger -tAqc "SELECT json_build_object(
   'rows', (SELECT COUNT(*) FROM fills),
   'distinct_seq', (SELECT COUNT(*) FROM (SELECT DISTINCT epoch, seq FROM fills) d),
   'per_epoch', (SELECT COALESCE(json_object_agg(epoch, n), '{}'::json) FROM
@@ -94,7 +100,12 @@ command = '''psql -U desk -d ledger -tAqc "SELECT json_build_object(
   'busts', (SELECT COUNT(*) FROM fills WHERE msg_type = 'bust'),
   'digest', (SELECT COALESCE(md5(string_agg(epoch || ':' || seq || ':' || msg_type || ':' || fill_id || ':' || revision || ':' || instrument || ':' || side || ':' || quantity || ':' || price, '|' ORDER BY epoch, seq)), '')
              FROM (SELECT DISTINCT ON (epoch, seq) epoch, seq, msg_type, fill_id, revision, instrument, side, quantity, price FROM fills ORDER BY epoch, seq, id) t)
-)" > /tmp/ledger.json'''
+)" > /tmp/ledger.json 2>/tmp/ledger.err; then
+    printf '{"schema_broken": true, "error": %s}' "$(python3 -c "
+import json,sys
+print(json.dumps(open('/tmp/ledger.err').read()[-400:]))" 2>/dev/null || echo '"query failed"')" > /tmp/ledger.json
+fi
+[ -s /tmp/ledger.json ] || echo '{"schema_broken": true, "error": "query produced no output"}' > /tmp/ledger.json'''
 
 [[verifier.collect]]
 service = "venue"
