@@ -6,9 +6,13 @@ The venue stream is at-least-once and it rewinds after a flap, so landing a fill
 has to be idempotent: `seq` is unique and inserts conflict-drop. The stream also
 serves batches with holes in them, which never heal by re-reading the stream, so
 the connector tracks a contiguous high-water mark and repairs anything behind it
-through the REST backfill. Positions are derived from the fills table rather than
-incremented in place, which keeps them correct no matter how often a fill is
-re-delivered.
+through the REST backfill.
+
+Meridian restates trades: an amendment carries the same fill_id at a higher
+revision, and a bust cancels one outright. Positions are therefore derived from
+the highest revision of each fill_id, with busted ids excluded, rather than
+summed over every row or incremented per message. Deduplicating on seq keeps the
+raw log honest; collapsing to the latest revision is what makes the book right.
 """
 from __future__ import annotations
 import json, os, sys, time, urllib.error, urllib.request
@@ -48,10 +52,10 @@ def land(conn, fills) -> None:
         return
     with conn.cursor() as cur:
         cur.executemany(
-            "INSERT INTO fills (seq, fill_id, instrument, side, quantity, price) "
-            "VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (seq) DO NOTHING",
-            [(f["seq"], f["fill_id"], f["instrument"], f["side"], f["quantity"], f["price"])
-             for f in fills],
+            "INSERT INTO fills (seq, msg_type, fill_id, revision, instrument, side, quantity, price) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (seq) DO NOTHING",
+            [(f["seq"], f.get("type", "fill"), f["fill_id"], f.get("revision", 1),
+              f["instrument"], f["side"], f["quantity"], f["price"]) for f in fills],
         )
     conn.commit()
 
@@ -80,7 +84,12 @@ def refresh_positions(conn) -> None:
             INSERT INTO positions (instrument, quantity)
             SELECT instrument,
                    SUM(CASE WHEN side = 'BUY' THEN quantity ELSE -quantity END)
-            FROM fills GROUP BY instrument
+            FROM (
+                SELECT DISTINCT ON (fill_id) fill_id, instrument, side, quantity, msg_type
+                FROM fills ORDER BY fill_id, revision DESC, seq DESC
+            ) latest
+            WHERE msg_type <> 'bust'
+            GROUP BY instrument
             ON CONFLICT (instrument) DO UPDATE SET quantity = EXCLUDED.quantity
         """)
     conn.commit()

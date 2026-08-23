@@ -82,13 +82,17 @@ command = '''psql -U desk -d ledger -tAqc "SELECT json_build_object(
   'min_seq', (SELECT COALESCE(MIN(seq),0) FROM fills),
   'max_seq', (SELECT COALESCE(MAX(seq),0) FROM fills),
   'duplicate_seqs', (SELECT COUNT(*) FROM (SELECT seq FROM fills GROUP BY seq HAVING COUNT(*)>1) d),
-  'duplicate_fill_ids', (SELECT COUNT(*) FROM (SELECT fill_id FROM fills GROUP BY fill_id HAVING COUNT(*)>1) d),
+  'duplicate_revisions', (SELECT COUNT(*) FROM (SELECT fill_id, revision FROM fills GROUP BY fill_id, revision HAVING COUNT(*)>1) d),
   'positions', (SELECT COALESCE(json_object_agg(instrument, quantity), '{}'::json) FROM positions),
   'derived', (SELECT COALESCE(json_object_agg(instrument, q), '{}'::json) FROM (
         SELECT instrument, SUM(CASE WHEN side='BUY' THEN quantity ELSE -quantity END) q
-        FROM fills GROUP BY instrument) s),
-  'digest', (SELECT COALESCE(md5(string_agg(seq || ':' || fill_id || ':' || instrument || ':' || side || ':' || quantity || ':' || price, '|' ORDER BY seq)), '')
-             FROM (SELECT DISTINCT ON (seq) seq, fill_id, instrument, side, quantity, price FROM fills ORDER BY seq) t)
+        FROM (SELECT DISTINCT ON (fill_id) fill_id, instrument, side, quantity, msg_type
+              FROM fills ORDER BY fill_id, revision DESC, seq DESC) latest
+        WHERE msg_type <> 'bust' GROUP BY instrument) s),
+  'amendments', (SELECT COUNT(*) FROM fills WHERE msg_type = 'amend'),
+  'busts', (SELECT COUNT(*) FROM fills WHERE msg_type = 'bust'),
+  'digest', (SELECT COALESCE(md5(string_agg(seq || ':' || msg_type || ':' || fill_id || ':' || revision || ':' || instrument || ':' || side || ':' || quantity || ':' || price, '|' ORDER BY seq)), '')
+             FROM (SELECT DISTINCT ON (seq) seq, msg_type, fill_id, revision, instrument, side, quantity, price FROM fills ORDER BY seq, id) t)
 )" > /tmp/ledger.json'''
 
 [[verifier.collect]]
