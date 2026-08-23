@@ -61,12 +61,12 @@ class Resolver:
             return hit
         acct = ref
         row = self._link(venue, ref)
-        if row is not None and row[1] <= when:
+        if row is not None:
             acct = row[0]
         seen = set()
         while True:
             row = self._rollup(acct)
-            if row is None or row[1] > when or acct in seen:
+            if row is None or acct in seen:
                 break
             seen.add(acct)
             acct = row[0]
