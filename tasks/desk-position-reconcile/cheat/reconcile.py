@@ -131,8 +131,8 @@ def main() -> int:
             CREATE TABLE attribution (fill_id TEXT, account TEXT, instrument TEXT,
                                       counterparty TEXT, notional TEXT);
             CREATE TABLE pos (asof TEXT, account TEXT, instrument TEXT, net INTEGER, gross INTEGER);
-            CREATE TABLE fee (asof TEXT, account TEXT, venue TEXT, amt TEXT);
-            CREATE TABLE exp (asof TEXT, account TEXT, asset TEXT, amt TEXT);
+            CREATE TABLE fee (asof TEXT, account TEXT, venue TEXT, cents INTEGER);
+            CREATE TABLE exp (asof TEXT, account TEXT, asset TEXT, cents INTEGER);
         """)
         # The root symbol a printed symbol descends from, so a rename chain can be
         # walked forward from any point in its history.
@@ -164,7 +164,7 @@ def main() -> int:
                     A.append((row["fill_id"], r.account(venue, ref, td),
                               r.instrument(root, td), r.counterparty(row["counterparty_lei"], td),
                               str(notional)))
-                    fee_usd = q_away(Decimal(row["fee"]) * rate_t)
+                    fee_cents = int(q_away(Decimal(row["fee"]) * rate_t) * 100)
                     for snap in snapshots:
                         if td > snap:
                             continue
@@ -173,9 +173,9 @@ def main() -> int:
                         mult_s, settle_s = r.terms(root, snap)
                         rate_s = r.fx(settle_s, snap)
                         P.append((snap, acc_s, ins_s, signed, qty))
-                        Fe.append((snap, acc_s, row["venue"], str(fee_usd)))
+                        Fe.append((snap, acc_s, row["venue"], fee_cents))
                         Ex.append((snap, acc_s, settle_s,
-                                   str(q_half_even(Decimal(signed) * mult_s * price * rate_s))))
+                                   int(q_half_even(Decimal(signed) * mult_s * price * rate_s) * 100)))
                     if len(A) >= SNAP_CHUNK:
                         db.executemany("INSERT INTO attribution VALUES (?,?,?,?,?)", A); A.clear()
                         db.executemany("INSERT INTO pos VALUES (?,?,?,?,?)", P); P.clear()
@@ -200,12 +200,22 @@ def main() -> int:
              ["as_of", "account", "instrument", "net_quantity", "gross_quantity"],
              "SELECT asof, account, instrument, SUM(net), SUM(gross) FROM pos "
              "GROUP BY asof, account, instrument ORDER BY asof, account, instrument")
-        dump(f"{a.output}/fees.csv", ["as_of", "account", "venue", "fee_usd"],
-             "SELECT asof, account, venue, printf('%.2f', SUM(CAST(amt AS REAL))) FROM fee "
-             "GROUP BY asof, account, venue ORDER BY asof, account, venue")
-        dump(f"{a.output}/exposure.csv", ["as_of", "account", "settlement_asset", "net_exposure_usd"],
-             "SELECT asof, account, asset, printf('%.2f', SUM(CAST(amt AS REAL))) FROM exp "
-             "GROUP BY asof, account, asset ORDER BY asof, account, asset")
+        # Sums are exact integers in minor units; the decimal point is put back at
+        # the very end, so no figure is ever re-rounded after summation.
+        def money(sql):
+            for asof, acct, dim, cents in db.execute(sql):
+                sign = "-" if cents < 0 else ""
+                c = abs(int(cents))
+                yield (asof, acct, dim, f"{sign}{c // 100}.{c % 100:02d}")
+
+        with open(f"{a.output}/fees.csv", "w", newline="") as out:
+            w = csv.writer(out); w.writerow(["as_of", "account", "venue", "fee_usd"])
+            w.writerows(money("SELECT asof, account, venue, SUM(cents) FROM fee "
+                              "GROUP BY asof, account, venue ORDER BY asof, account, venue"))
+        with open(f"{a.output}/exposure.csv", "w", newline="") as out:
+            w = csv.writer(out); w.writerow(["as_of", "account", "settlement_asset", "net_exposure_usd"])
+            w.writerows(money("SELECT asof, account, asset, SUM(cents) FROM exp "
+                              "GROUP BY asof, account, asset ORDER BY asof, account, asset"))
     finally:
         db.close()
         shutil.rmtree(tmp, ignore_errors=True)
