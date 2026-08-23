@@ -27,12 +27,14 @@ def main() -> int:
         try:
             v = venue_state()
             with psycopg.connect(DSN, connect_timeout=5) as c, c.cursor() as cur:
-                cur.execute("SELECT COALESCE(MAX(seq),0), COUNT(*) FROM fills")
-                max_seq, n_rows = cur.fetchone()
+                cur.execute("SELECT COUNT(*) FROM (SELECT DISTINCT epoch, seq FROM fills) d")
+                landed = cur.fetchone()[0]
+                cur.execute("SELECT COUNT(*) FROM fills")
+                n_rows = cur.fetchone()[0]
             published = int(v.get("published", v.get("high_seq", 0)))
             samples.append({"t": round(time.time() - started, 2), "venue_published": published,
-                            "ledger_max_seq": int(max_seq), "ledger_rows": int(n_rows),
-                            "lag": published - int(n_rows)})
+                            "ledger_landed": int(landed), "ledger_rows": int(n_rows),
+                            "lag": published - int(landed)})
             if v.get("complete") and complete_at is None:
                 complete_at = time.time() - started
             json.dump({"samples": samples[-4000:], "stream_complete_at": complete_at,

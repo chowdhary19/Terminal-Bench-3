@@ -17,8 +17,8 @@ Fix the connector so that when the session ends:
 
 - Every fill Meridian published is in `fills`, exactly once, with its fields unchanged.
 - `positions` matches Meridian's own book for every instrument, exactly.
-- The ledger keeps up while the session runs. Risk needs live positions, so falling behind and
-  reconciling everything at the end is not a fix.
+- The ledger is caught up with the session and holding by the time you are finished. Trailing
+  the venue while you work out what is wrong is expected; leaving the desk unreconciled is not.
 
 The venue's engineers will tell you their edge is at-least-once and that they consider a
 redelivery your problem, not theirs. They will also tell you Meridian restates trades and that
