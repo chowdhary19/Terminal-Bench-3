@@ -24,6 +24,12 @@ def q_half_even(x: Decimal) -> Decimal:
     return x.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
 
 
+def fmt_money(x: Decimal) -> str:
+    """Two places, a leading minus only when the value is actually negative."""
+    q = x.quantize(Decimal("0.01"))
+    return "0.00" if q == 0 else f"{q:.2f}"
+
+
 def q_away(x: Decimal) -> Decimal:
     return x.quantize(Decimal("0.01"), rounding=ROUND_UP) if x >= 0 else \
            (-((-x).quantize(Decimal("0.01"), rounding=ROUND_UP)))
@@ -53,7 +59,7 @@ def load_graph(indir: str, db: sqlite3.Connection) -> None:
     feed("fx_rates.csv", "INSERT INTO fx VALUES (?,?,?)", ["utc_date", "asset", "rate_usd"])
     db.executescript("""
         CREATE UNIQUE INDEX i_rollup ON rollup (donor);
-        CREATE UNIQUE INDEX i_link ON link (venue, code);
+        CREATE INDEX i_link ON link (venue, code, eff);
         CREATE UNIQUE INDEX i_sym ON sym (symbol);
         CREATE INDEX i_sym_id ON sym (iid, eff);
         CREATE UNIQUE INDEX i_cp ON cp (old);
@@ -89,13 +95,18 @@ class AsOf:
         return cur
 
     def account(self, venue, ref, when):
-        self.c.execute("SELECT account, eff FROM link WHERE venue=? AND code=?", (venue, ref))
+        # A venue may reassign its own code, so take the assertion in force on
+        # the date being resolved as at. With none in force the reference is an
+        # account id in its own right.
+        self.c.execute("SELECT account FROM link WHERE venue=? AND code=? "
+                       "ORDER BY eff DESC LIMIT 1", (venue, ref))
         row = self.c.fetchone()
         acct = row[0] if row is not None else ref
         return self._chain("rollup", acct, when)
 
     def instrument_id(self, symbol):
-        """A symbol names exactly one instrument for life."""
+        """A symbol names exactly one instrument for life, so this direction is
+        not dated; only rendering an id back to a symbol is."""
         self.c.execute("SELECT iid FROM sym WHERE symbol=?", (symbol,))
         row = self.c.fetchone()
         return row[0] if row else symbol
@@ -121,13 +132,17 @@ class AsOf:
         self.c.execute("SELECT mult, settle FROM rev WHERE iid=? "
                        "ORDER BY eff DESC LIMIT 1", (iid,))
         row = self.c.fetchone()
-        return (row[0], row[1]) if row else (1, "USDT")
+        if row is None:
+            raise KeyError(f"no contract terms for {iid} as at {when}")
+        return (row[0], row[1])
 
     def fx(self, asset, when):
         self.c.execute("SELECT rate FROM fx WHERE asset=? AND utc_date<=? "
                        "ORDER BY utc_date DESC LIMIT 1", (asset, when))
         row = self.c.fetchone()
-        return Decimal(row[0]) if row else Decimal(1)
+        if row is None:
+            raise KeyError(f"no reference rate for {asset} as at {when}")
+        return Decimal(row[0])
 
 
 def main() -> int:
@@ -170,7 +185,7 @@ def main() -> int:
                     notional = q_half_even(Decimal(signed) * mult_t * price * rate_t)
                     A.append((row["fill_id"], r.account(venue, ref, td),
                               r.symbol_at(iid, td), r.counterparty(row["counterparty_lei"], td),
-                              str(notional)))
+                              fmt_money(notional)))
                     fee_cents = int(q_away(Decimal(row["fee"]) * rate_t) * 100)
                     for snap in snapshots:
                         if td > snap:
@@ -211,8 +226,8 @@ def main() -> int:
         # the very end, so no figure is ever re-rounded after summation.
         def money(sql):
             for asof, acct, dim, cents in db.execute(sql):
-                sign = "-" if cents < 0 else ""
                 c = abs(int(cents))
+                sign = "-" if cents < 0 and c else ""     # a zero figure is 0.00
                 yield (asof, acct, dim, f"{sign}{c // 100}.{c % 100:02d}")
 
         with open(f"{a.output}/fees.csv", "w", newline="") as out:

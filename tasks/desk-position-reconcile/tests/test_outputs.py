@@ -187,6 +187,14 @@ def test_dimensions_not_yet_changed_stay_distinct(runs):
         f"fill {wrong[0][0]} reported {wrong[0][1]}, should be {wrong[0][2]}")
 
 
+def test_reports_are_sorted_as_the_policy_requires(runs):
+    """emit.sort: ascending by the report's grain columns, comparing as text."""
+    for name, (cols, k) in REPORTS.items():
+        keys = [tuple(r[:k]) for r in read_csv(runs["main"].outdir / name, cols)]
+        assert keys == sorted(keys), (
+            f"{name} is not sorted ascending by {cols[:k]} compared as text")
+
+
 def test_peak_memory_within_cap(runs):
     peak = runs["main"].peak_rss_bytes
     assert peak > 0, "could not measure the reconciliation's memory use"

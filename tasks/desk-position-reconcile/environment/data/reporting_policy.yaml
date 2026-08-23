@@ -5,10 +5,12 @@ version: 4
 # Identity
 #
 # Every entity the desk reports along has a stable identifier and a set of
-# externally visible names or codes that change over time. A name is resolved to
-# its identifier as at a date, and an identifier is rendered back to the name it
-# carried as at a date. Both directions are dated: a rename that takes effect in
-# September does not apply to a row in March.
+# externally visible names or codes that change over time. Resolution is dated: a
+# rename or reassignment that takes effect in September does not apply to a row
+# in March. A venue code is resolved to the account it denoted on the date being
+# resolved as at, and an instrument id is rendered back to the symbol it carried
+# on that date. An instrument symbol names one instrument for life, so reading a
+# symbol to its instrument id needs no date.
 # ---------------------------------------------------------------------------
 identity:
   account:
@@ -17,6 +19,9 @@ identity:
     # A venue quotes its own local code for one of the desk's accounts, asserted
     # from a date. A fill's account_ref is either such a code or an account id.
     alias_source: venue_account_map.csv
+    # A venue may reassign its own code to a different account from a later
+    # date, so the code denotes whichever account the latest assertion in force
+    # on that date names. A reference with no assertion in force is an account id.
     alias: {name: venue_code, scope: venue, id: account, effective: effective_from}
     # Accounts are restructured: a donor rolls into a survivor from a date, and
     # rollups compose, so resolution follows the chain of rollups already in
@@ -84,6 +89,9 @@ figures:
     contract_multiplier_as_at: as_of
     settlement_asset_as_at: as_of
     fx_rate_as_at: as_of
+    # Deliberate: the fill's own price is carried forward unchanged and revalued
+    # at the terms in force at as_of, even where the settlement asset was revised
+    # after the trade date. The price is not re-expressed in the earlier asset.
     rounding: half_even
     dp: 2
 
@@ -114,7 +122,8 @@ reports:
   attribution:
     file: attribution.csv
     columns: [fill_id, account, instrument, counterparty, notional_usd]
-    grain: fill
+    grain: fill_id
+    include: every fill in the export, unfiltered
     as_at: the fill's own trade_date
   positions:
     file: positions.csv
@@ -141,4 +150,8 @@ emit:
   groups: emit a row for every group that has at least one included fill, even
           when the figure sums to zero
   money_format: a plain decimal with exactly two places, a leading minus for
-                negatives, no thousands separators
+                negatives, no thousands separators. A figure whose rounded value
+                is zero is written 0.00, never -0.00, whatever the sign of the
+                contributions that produced it
+  quantity_format: the exact integer sum, with no decimal point and no exponent
+  encoding: UTF-8 without a byte order mark

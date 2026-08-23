@@ -6,7 +6,7 @@ artifacts = ["/app/reconcile.py"]
 
 [task]
 name = "terminal-bench/desk-position-reconcile"
-description = ""
+description = "Reconcile a prime-brokered desk's clearing period into four regulatory reports, resolving every reporting dimension as at the date each row is stated as at, under a memory ceiling."
 authors = [{ name = "Yuvraj Singh Chowdhary", email = "chowdharyyuvrajsingh@gmail.com" }]
 
 [metadata]
@@ -26,8 +26,8 @@ everywhere, which is correct for the last reporting date and wrong for every ear
 nothing about the output looks wrong: the accounts are real, the identifiers are well formed, the \
 net quantity across the desk is identical, and the final snapshot agrees exactly with the correct \
 answer. Only the earlier quarters and the individual bookings differ, and they differ quietly, on \
-about a sixth of the fills. On top of that the identity graph is larger than the memory budget. \
-Holding the rollups and a canonical cache in memory costs roughly 324 MB against a 192 MB \
+about over half the fills. On top of that the identity graph is larger than the memory budget. \
+Holding the rollups and a canonical cache in memory costs several times the ceiling against a 192 MB \
 ceiling that is sampled across the process tree while the reconciliation runs, so the resolution \
 has to happen out of core, and an as-of resolution cannot be reduced to a single precomputed \
 canonical map the way a static one can. The work is to notice that identity here is a function of \
@@ -52,7 +52,7 @@ unprivileged user with no-new-privs set and in a new session, so an executed sub
 reach the reward channel under /logs/verifier, which is root-owned, mode 0700, and created before \
 anything is executed. Peak memory is the maximum summed resident set size over the process tree, \
 sampled every fifty milliseconds, so spawning a child to hold the data does not evade the cap. \
-Both output files are compared exactly against figures computed at image build time and never \
+All four reports are compared exactly against figures computed at image build time and never \
 present in the task environment. One check is stated separately: the fills that traded before \
 their account was rolled up, which a resolution that ignores effective dates books to the \
 surviving account while looking correct everywhere else. Reward is binary.
