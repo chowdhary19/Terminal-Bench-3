@@ -42,9 +42,9 @@ def resume_point(cur) -> int:
 
 def apply_fill(cur, f) -> None:
     cur.execute(
-        "INSERT INTO fills (seq, msg_type, fill_id, revision, instrument, side, quantity, price) "
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-        (f["seq"], f.get("type", "fill"), f["fill_id"], f.get("revision", 1),
+        "INSERT INTO fills (epoch, seq, msg_type, fill_id, revision, instrument, side, quantity, price) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+        (f.get("epoch", 1), f["seq"], f.get("type", "fill"), f["fill_id"], f.get("revision", 1),
          f["instrument"], f["side"], f["quantity"], f["price"]),
     )
     signed = f["quantity"] if f["side"] == "BUY" else -f["quantity"]

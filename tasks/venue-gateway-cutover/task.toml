@@ -78,10 +78,11 @@ environment_mode = "separate"
 service = "ledger"
 command = '''psql -U desk -d ledger -tAqc "SELECT json_build_object(
   'rows', (SELECT COUNT(*) FROM fills),
-  'distinct_seq', (SELECT COUNT(DISTINCT seq) FROM fills),
-  'min_seq', (SELECT COALESCE(MIN(seq),0) FROM fills),
-  'max_seq', (SELECT COALESCE(MAX(seq),0) FROM fills),
-  'duplicate_seqs', (SELECT COUNT(*) FROM (SELECT seq FROM fills GROUP BY seq HAVING COUNT(*)>1) d),
+  'distinct_seq', (SELECT COUNT(*) FROM (SELECT DISTINCT epoch, seq FROM fills) d),
+  'per_epoch', (SELECT COALESCE(json_object_agg(epoch, n), '{}'::json) FROM
+        (SELECT epoch, COUNT(DISTINCT seq) n FROM fills GROUP BY epoch) e),
+  'duplicate_seqs', (SELECT COUNT(*) FROM (SELECT epoch, seq FROM fills GROUP BY epoch, seq HAVING COUNT(*)>1) d),
+  'epochs', (SELECT COUNT(DISTINCT epoch) FROM fills),
   'duplicate_revisions', (SELECT COUNT(*) FROM (SELECT fill_id, revision FROM fills GROUP BY fill_id, revision HAVING COUNT(*)>1) d),
   'positions', (SELECT COALESCE(json_object_agg(instrument, quantity), '{}'::json) FROM positions),
   'derived', (SELECT COALESCE(json_object_agg(instrument, q), '{}'::json) FROM (
@@ -91,8 +92,8 @@ command = '''psql -U desk -d ledger -tAqc "SELECT json_build_object(
         WHERE msg_type <> 'bust' GROUP BY instrument) s),
   'amendments', (SELECT COUNT(*) FROM fills WHERE msg_type = 'amend'),
   'busts', (SELECT COUNT(*) FROM fills WHERE msg_type = 'bust'),
-  'digest', (SELECT COALESCE(md5(string_agg(seq || ':' || msg_type || ':' || fill_id || ':' || revision || ':' || instrument || ':' || side || ':' || quantity || ':' || price, '|' ORDER BY seq)), '')
-             FROM (SELECT DISTINCT ON (seq) seq, msg_type, fill_id, revision, instrument, side, quantity, price FROM fills ORDER BY seq, id) t)
+  'digest', (SELECT COALESCE(md5(string_agg(epoch || ':' || seq || ':' || msg_type || ':' || fill_id || ':' || revision || ':' || instrument || ':' || side || ':' || quantity || ':' || price, '|' ORDER BY epoch, seq)), '')
+             FROM (SELECT DISTINCT ON (epoch, seq) epoch, seq, msg_type, fill_id, revision, instrument, side, quantity, price FROM fills ORDER BY epoch, seq, id) t)
 )" > /tmp/ledger.json'''
 
 [[verifier.collect]]

@@ -51,8 +51,9 @@ def test_every_published_fill_landed(venue, ledger):
         f"the venue published {total} fills but the ledger holds "
         f"{ledger['distinct_seq']} distinct sequence numbers "
         f"({total - int(ledger['distinct_seq'])} never landed)")
-    assert int(ledger["min_seq"]) == 1, f"ledger starts at seq {ledger['min_seq']}, expected 1"
-    assert int(ledger["max_seq"]) == total, f"ledger ends at seq {ledger['max_seq']}, expected {total}"
+    assert int(ledger.get("epochs", 0)) >= 2, (
+        f"the ledger holds {ledger.get('epochs')} epoch(s); Meridian failed over during the "
+        "session and published under two, so a connector that followed only one lost the rest")
 
 
 def test_no_fill_landed_twice(venue, ledger):
