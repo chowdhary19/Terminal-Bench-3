@@ -32,10 +32,17 @@ The rest of `/app/inputs/` is the period:
 - `rebate_tiers.csv` — a venue's rebate bands by the desk's trailing traded volume
 - `haircuts.csv` — a haircut rate per settlement asset, from an effective date
 - `margin_rates.csv` — an initial margin rate per instrument, from an effective date
+- `corporate_actions.csv` — a split restates an instrument's quantities and unit costs from an
+  effective date
+- `interest_rates.csv` — the rate a debit balance accrues at, from an effective date
+- `venue_statement.csv` — the venue's own statement of the desk's positions at the report date
+- `financing_pool.csv`, `allocation_priority.csv` — one pooled financing charge and the order the
+  desk's accounts draw on it in
 - `period.json` — the period's reporting dates
 - `fills/` — the venue's fill export, sharded across files
 
 Every report is compared exactly. Output must be deterministic, and peak resident memory across
-the process tree must stay within `--max-memory`, measured while the reconciliation runs.
+the process tree must stay within `--max-memory`, measured while the reconciliation runs. A single
+run over the period must finish within 1800 seconds; the reference implementation takes about 85.
 
 You have 3600 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.

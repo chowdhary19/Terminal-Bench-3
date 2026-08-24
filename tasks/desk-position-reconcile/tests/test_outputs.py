@@ -44,7 +44,12 @@ REPORTS = {
                            "fee_usd", "commission_usd"], 2),
     "margin.csv": (["as_of", "account", "initial_margin_usd"], 2),
     "lots.csv": (["account", "instrument_id", "open_quantity", "average_cost_usd",
-                  "realised_pnl_usd"], 2),
+                  "realised_pnl_usd", "fifo_realised_pnl_usd"], 2),
+    "breaks.csv": (["account", "instrument", "ledger_quantity", "statement_quantity",
+                    "difference", "classification"], 2),
+    "financing.csv": (["account", "priority", "cap_usd", "allocated_usd",
+                       "cumulative_usd"], 1),
+    "interest.csv": (["account", "closing_balance_usd", "interest_accrued_usd"], 1),
 }
 
 
@@ -69,19 +74,37 @@ def _drop_privileges() -> None:
 
 
 def sample_peak_rss(proc: subprocess.Popen, interval_s: float = 0.05) -> int:
+    """Peak resident set size held by the submission, whatever it is held in.
+
+    Everything the submission starts inherits the unprivileged uid, and nothing
+    else in this image runs as that uid, so charging every process owned by it
+    counts a worker that double-forks itself out of the process tree exactly the
+    same as one that stays in it. The tree is walked as well, so a child that has
+    already changed its own uid is still counted.
+    """
+    import pwd
+    nobody_uid = pwd.getpwnam("nobody").pw_uid
     peak = 0
     try:
         root = psutil.Process(proc.pid)
     except psutil.Error:
         return 0
     while proc.poll() is None:
+        seen, total = set(), 0
         procs = [root]
         try:
             procs.extend(root.children(recursive=True))
         except psutil.Error:
             pass
-        total = 0
+        try:
+            procs.extend(p for p in psutil.process_iter(["uids"])
+                         if p.info["uids"] and p.info["uids"].real == nobody_uid)
+        except psutil.Error:
+            pass
         for p in procs:
+            if p.pid in seen:
+                continue
+            seen.add(p.pid)
             try:
                 total += p.memory_info().rss
             except psutil.Error:
