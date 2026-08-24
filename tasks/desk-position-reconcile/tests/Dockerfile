@@ -21,6 +21,15 @@ FROM python:3.13-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1
 
+# The submission is developed in the environment image and executed here, so
+# whatever it can reach there it must be able to reach here. These are the two
+# apt packages that image installs; without them a reconciliation that shells
+# out to sqlite3, or reads its own memory through ps, works while it is being
+# written and fails only when it is scored.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      sqlite3 procps \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN pip install --no-cache-dir \
     psutil==7.1.0 \
     pytest==9.1.1 \

@@ -176,6 +176,39 @@ check("symmetric" in ident and "dated" in ident, "the identity block distinguish
 for leak in ("union-find", "union find", "do not fold", "must not be folded", "two-stage", "two stage"):
     check(leak not in ident.lower(), f"the identity block does not name the answer ({leak!r})")
 
+# ---- 11. the two images agree on what a submission can reach ---------------
+# The submission is written in the environment image and executed in the
+# verifier image. Anything reachable there and missing here fails only at
+# scoring time, which is the worst moment to find out.
+import shutil as _sh, subprocess as _sp
+if _sh.which("docker") and _sp.run(["docker", "info"], capture_output=True).returncode == 0:
+    def bins(image, entry):
+        cmd = ["docker", "run", "--rm"] + entry + [image, "-c",
+               "ls /usr/bin /bin 2>/dev/null | sort -u"]
+        r = _sp.run(cmd, capture_output=True, text=True)
+        return set(r.stdout.split()) if r.returncode == 0 else None
+    e = bins("dpr-env:latest", ["--entrypoint", "sh"])
+    v = bins("dpr-tests:latest", ["--entrypoint", "sh"])
+    if e and v:
+        gap = sorted(e - v)
+        check(not gap, f"every tool in the environment image is also in the verifier image ({len(e)} tools)")
+        if gap:
+            bad.append(f"   reachable while writing, missing while scoring: {gap}")
+        def mods(image):
+            names = "sqlite3 decimal fractions csv json datetime itertools heapq array mmap struct bisect"
+            r = _sp.run(["docker", "run", "--rm", "--entrypoint", "python3", image, "-c",
+                         f"import importlib.util;print(' '.join(m for m in '{names}'.split() "
+                         "if importlib.util.find_spec(m)))"], capture_output=True, text=True)
+            return set(r.stdout.split())
+        me, mv = mods("dpr-env:latest"), mods("dpr-tests:latest")
+        check(me and me <= mv, f"every stdlib module the environment offers is importable when scored ({len(me)})")
+        if me and not me <= mv:
+            bad.append(f"   missing at scoring time: {sorted(me - mv)}")
+    else:
+        note.append("images not built locally; image parity not checked")
+else:
+    note.append("docker unavailable; image parity not checked")
+
 print("\n".join(f"  ok   {m}" for m in note if m))
 print()
 if bad:
