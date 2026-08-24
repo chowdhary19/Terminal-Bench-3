@@ -38,4 +38,4 @@ The rest of `/app/inputs/` is the period:
 Every report is compared exactly. Output must be deterministic, and peak resident memory across
 the process tree must stay within `--max-memory`, measured while the reconciliation runs.
 
-You have 7200 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.
+You have 3600 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.
