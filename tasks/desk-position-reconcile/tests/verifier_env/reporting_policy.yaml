@@ -32,15 +32,8 @@ identity:
     # are all one entity.
     link_source: entity_links.csv
     link: {a: account_a, b: account_b, symmetric: true, dated: false}
-    # The two relations are applied in this order and are not combined into one:
-    #   1. read the reference through the venue map for that date
-    #   2. follow the rollups in force on that date, to the end of the chain
-    #   3. report the entity the result belongs to, named by the account id that
-    #      sorts first among that entity's accounts
-    # Applying the links before the rollups, or folding both into a single set of
-    # equivalences, reports two accounts as one on a date when only a later
-    # rollup joined them.
-    report_as: the account id that sorts first among its entity's accounts
+    report_as: the account id that sorts first among the accounts of the entity
+               the reference belongs to
 
   instrument:
     id: instrument_id
@@ -64,10 +57,8 @@ identity:
 # force on the date being resolved as at names.
 netting:
   source: netting_sets.csv
-  # The key is the fully resolved account: the venue code read as at the date
-  # being resolved as at, then followed up the rollup chain in force on that
-  # date. It is the value the reports print in their account column, never the
-  # raw account_ref and never a pre-rollup donor.
+  # The key is the account as the reports print it in their account column, not
+  # the raw account_ref.
   key: account
   id: netting_set
   effective: effective_from
