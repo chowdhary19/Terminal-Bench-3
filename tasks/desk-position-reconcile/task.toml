@@ -6,7 +6,7 @@ artifacts = ["/app/reconcile.py"]
 
 [task]
 name = "terminal-bench/desk-position-reconcile"
-description = "Reconcile a prime-brokered desk's clearing period into twelve regulatory reports, resolving every reporting dimension as at the date each row is stated as at, under a memory ceiling."
+description = "Reconcile a prime-brokered desk's clearing period into eleven regulatory reports, resolving every clearing account to the entity it belonged to on the date each row is stated as at, under a memory ceiling."
 authors = [{ name = "Yuvraj Singh Chowdhary", email = "chowdharyyuvrajsingh@gmail.com" }]
 
 [metadata]
@@ -14,96 +14,93 @@ author_name = "Yuvraj Singh Chowdhary"
 author_email = "chowdharyyuvrajsingh@gmail.com"
 category = "Operations"
 subcategory = "Finance"
-tags = ["clearing", "entity-resolution", "effective-dating", "memory-bounded", "reconciliation"]
-expert_time_estimate_hours = 22.0
+tags = ["clearing", "entity-resolution", "effective-dating", "memory-bounded", "reconciliation", "pseudonymisation"]
+expert_time_estimate_hours = 26.0
 difficulty_explanation = """
-Twelve reports are cut from one year of a prime-brokered desk's clearing, and almost every value \
-depends on when it is being stated as at. Accounts roll up into parents from effective dates and \
-the rollups chain; venue codes are reassigned to different accounts from later dates; instruments \
-are renamed and their contract terms revised; counterparties are reassigned to successor legal \
-entity identifiers; netting membership, commission bands, haircut rates and margin rates are all \
-dated as well. Ten dated relations in total, and a report states the world as at its own date, so \
-a value that is right for the final quarter is wrong for the first three.
+Eleven reports are cut from one year of a prime-brokered market-making desk's clearing: 900,000 \
+fills across four venues, 1.2 million clearing accounts in four books, and a policy file that \
+states what each column is and how each figure rounds, and nothing about how the columns relate.
 
-Alongside them sits one relation that is not dated at all. An entity link says two clearing \
-accounts are, and have always been, one legal entity: symmetric, composing, timeless. That is a \
-genuine equivalence and it wants an equivalence structure, which is exactly what the dated \
-rollups must not be folded into. Doing so relabels a survivor with a donor's identity on a date \
-when only a later rollup joined them, and it is measured here at nineteen percent of the period's \
-graded rows across eight of the twelve reports. Two of six independent engineers implementing from this \
-policy alone made that fold; four did not, and every one who did reported it as their largest \
-open question.
+The difficulty is that the identity model lives in the data. A clearing account is a local id \
+scoped to its book, and the same local id exists in every book as a different account. Each \
+venue exports the desk's account its own way: one as a structured reference, two as their own \
+venue codes, one as a bare local id whose book is carried by a separate column that the policy \
+never mentions. A venue code is a lossy handle that looks like an id and is not one; it resolves \
+only through the venue's assertion map, and the venue reassigns codes to other accounts mid-year, \
+so the same code means different accounts on different dates. Accounts merge into other accounts \
+from effective dates, the mergers chain, and each merger record names the merging account by a \
+venue handle, which itself has to be resolved as at the merger's date. Separately, and undated, \
+the broker links accounts across books that are one legal entity, and those links compose.
 
-Six of the reports are not group-bys at all. Lot accounting replays the whole export in order per \
-account and instrument under two cost conventions at once, weighted average and first in first \
-out, which disagree on eighty-eight percent of the lots; positions close and reopen across zero \
-and reset when a lot goes flat. Corporate actions restate quantities and unit costs from an \
-effective date, so a quantity means different things on either side of a split while every money \
-figure is left invariant. The venue's own statement is reconciled against the desk's ledger and \
-only the breaks are reported, in three classes. One pooled financing charge is walked down a \
-priority order until it is exhausted, then emitted in grain order rather than allocation order. \
-Interest on a debit balance compounds day by day at the dated rate in force, carried as an exact \
-rational; simple interest, an undated rate, and rounding the balance to cents each day each give a \
-different answer, on 164, 149 and 140 of the accounts respectively. Rebates come \
-from the desk's trailing thirty day traded volume on a venue over a window ending before the \
-fill's own day, which cannot be evaluated until the whole export has been priced once. Two \
-rounding regimes coexist: per-fill figures round on each contribution and sum exactly, while \
-haircut, net-after-haircut and margin are derived from an already summed figure and round once, \
-after the sum. Underneath all of it the identity graph is far larger than the memory budget, so \
-the resolution has to happen out of core against a ceiling sampled across the process tree while \
-the reconciliation runs.
+The instruction states the requirement in one sentence: references to the same clearing entity \
+carry the same token, including across effective-dated mergers and across the links. Its natural \
+reading is that merged accounts become one token. The period's semantics are the opposite: a fill \
+booked to an account before that account merged belongs to the account it was booked to, so the \
+account structure is resolved as at each row's own date, which is the trade date on the \
+attribution, the snapshot date on the as-of reports, and the report date on the period-end \
+reports. Neither which date governs which report, nor which column carries which meaning, nor how \
+the dated mergers and the undated links compose, is stated anywhere the agent can read. Each is a \
+separate decision, each wrong reading produces a well-formed, deterministic, internally consistent \
+output, and because the accounts are reported as seeded opaque tokens there is nothing in the \
+output to compare against: a second implementation built on the same reading agrees with the \
+first. Measured on the period, folding the mergers into the links moves 27 percent of the fills to \
+a different entity; reading merger handles as at the period end moves 11 percent; ignoring the \
+book scope on bare local ids collides accounts in every book.
+
+Underneath, seven further computation kinds, each stated as terse configuration: lot accounting \
+under weighted-average and first-in-first-out cost at once, corporate actions restating quantities \
+and unit costs from their dates, a pooled financing charge walked down a priority order, daily \
+compounding interest at dated rates, trailing-window rebate tiers, banded commissions under \
+dated schedules, and per-instrument margin rounded before it is summed. The identity graph is \
+larger than the 128 MB ceiling, sampled across every process the submission owns while it runs.
 """
 solution_explanation = """
-Load every reference table into SQLite with its effective dates indexed, and stream the fill \
-shards past them rather than loading either into memory. Resolve each dimension as at the date \
-the row being produced is stated as at: a venue code through the assertion in force then up the \
-rollup chain in force, an instrument id back to the symbol it carried, a counterparty along its \
-reassignments. Apply the entity links only after that walk, as an undated equivalence over \
-accounts, naming each entity by the account id that sorts first among its members; they are a \
-labelling of accounts, not a way of moving what a reference denotes, so they cannot be folded \
-into the same structure as the rollups.
+Load the venue code map, the mergers, the links and the netting membership into SQLite and read \
+everything else into small dated lists. Resolve a merger's venue handle through the code map as at \
+the merger's own effective date before anything else, since the handle means a different account on \
+other dates. Resolve each fill's reference to an account as at its trade date: a structured \
+reference denotes itself, a venue code denotes the account the venue had it assigned to that day, a \
+bare local id is scoped by the row's clearing_scope column. Then, for the date the row is stated as \
+at, follow the mergers in force on that date to the account carrying the business, and only then \
+apply the links as an undated equivalence to name the entity; the entity's token is a seeded hash of \
+its canonical name, so it is the same on every report and every date and changes with the seed.
 
-Price each fill once, accumulating the desk's daily traded volume per venue so the trailing \
-window can be formed, then replay in lot order, which within a lot is also trade order. Carry the \
-average cost as an exact rational and round only when it is written. Stage the attribution, the \
-per-snapshot legs and the lot state in SQLite and emit each report with a single ordered scan, \
-because the attribution and the aggregates are each larger than the budget as well. Derived \
-figures are computed from the summed values and rounded once, with margin rounding per instrument \
-before it is summed across an account. Carry two lot queues at once, the weighted average and a first in first out queue, and restate quantities and unit costs through the split factor acting strictly after a fill's own trade date. \
-Resolve the venue's statement through the same dimensions before comparing it, and report only the pairs that break. \
-Walk the financing pool down the priority order but emit it in grain order. \
-Accrue interest by stepping one day at a time from period_start to the report date, applying that day's cash moves before the accrual, carrying the balance as an exact rational so nothing is lost between days, and rounding only when it is written. \
-The reference is solution/files/reconcile.py, which peaks \
-near 118 MB on the period in the environment image and takes about 85 seconds there.
+Price each fill once at its trade date and stage it, accumulating the desk's daily traded notional \
+per venue for the rebate window. Replay in period-end-entity and trade order for the lots, carrying \
+both cost bases as exact rationals and restating quantities and unit costs through the split \
+factor between the trade date and the report date. Emit each report with one ordered scan over the \
+staged legs. The reference is solution/files/reconcile.py, which peaks near 81 MB on the period and \
+runs in about 50 seconds.
 """
 verification_explanation = """
-The verifier runs the submitted reconciliation rather than reading a submitted answer. It \
-executes it three times: once on the desk's period for correctness and the memory ceiling, and \
-twice on a small period to confirm two runs agree byte for byte. Every run executes as an \
-unprivileged user with no-new-privs set and in a new session, so an executed submission cannot \
-reach the reward channel under /logs/verifier, which is root-owned, mode 0700, and created before \
-anything is executed. The settled figures live in the same image but are mode 0700 on the \
-directory and 0600 on the files, owned by root, so the executed submission cannot read them \
-either; both were confirmed by running a submission that tries to copy the answers and write the \
-reward, and which scores zero. Peak memory is the maximum summed resident set size over the \
-process tree and over every process owned by the unprivileged uid, sampled every fifty \
-milliseconds. Nothing else in the image runs as that uid, so a worker that double-forks itself out \
-of the process tree is charged exactly as one that stays in it; a submission that hides 700 MB in \
-a detached orphan is measured at 726 MB and fails.
+The verifier runs the submitted reconciliation four times: once on the period, twice on a small \
+period to confirm two runs agree byte for byte, and once more on the small period under another \
+seed. Every run executes as an unprivileged user with no-new-privs set and in a new session; the \
+reward channel and the settled figures are root-only, so an executed submission can reach neither \
+(confirmed by running a submission that tries to copy the figures and write the reward, which scores \
+zero). Peak memory is the summed resident set size over the process tree and over every process the \
+unprivileged uid owns, sampled every fifty milliseconds, so a worker double-forked out of the tree \
+is charged the same as one inside it (a submission hiding 700 MB that way measures 726 MB and \
+fails).
 
-All twelve reports are compared exactly against figures computed at image build time and never \
-present in the task environment, each on its full grain, with duplicate grain keys rejected and \
-sort order checked. One check is stated separately: the fills whose account, instrument or \
-counterparty had not yet changed on the day they traded, computed at build time as the exact \
-difference between a dated resolution and a collapsed one, so it is the discriminating cases \
-themselves rather than a proxy for them. Reward is binary.
+Tokens are the submission's own. The verifier never expects a particular token: it reads the \
+attribution, where every fill names one entity as at its trade date, and requires the submitted \
+tokens to induce the period's partition, with no token spanning two entities and no entity carrying \
+two tokens. Through that bijection every other report is compared exactly on its full grain, with \
+duplicate keys rejected and sort order checked. One test is stated separately: for each fill booked \
+before its account merged, it must not share a token with a fill of the entity the fold would move \
+it to, computed at build time as the exact difference between a dated resolution and one that \
+treats every merger as always in force. Determinism and seed sensitivity are checked on the small \
+period: same seed, identical bytes; different seed, every token changes and nothing else does. \
+Reward is binary.
 """
 relevant_experience = """
 I build and operate a production crypto market-making system: a Rust execution engine with \
 cross-venue hedge routing, exchange fill ingestion, and position reconciliation across venues and \
 clearing accounts. Attributing fills to the clearing structure that existed when they traded, \
 rather than the one that exists today, is work I have done on a live desk; this task is a reduced \
-version of it.
+version of it. The concealment discipline, a terse policy over data that carries the semantics and \
+a graded core the agent cannot observe, follows the merged task data-anonymization.
 """
 
 [verifier]

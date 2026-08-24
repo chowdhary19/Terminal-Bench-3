@@ -10,8 +10,7 @@ mkdir -p /logs/verifier
 chmod 700 /logs/verifier
 
 # The submission is executed as an unprivileged user, so it has to be readable
-# by one. Which uid the verifier runs it as is not the desk's problem, and a
-# correct reconciliation left mode 0600 must not fail for that reason.
+# by one. A correct reconciliation left mode 0600 must not fail for that reason.
 chmod a+r /app/reconcile.py 2>/dev/null || true
 
 python3 -m pytest --ctrf /logs/verifier/ctrf.json /tests/test_outputs.py -rA
