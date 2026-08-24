@@ -7,53 +7,57 @@ version: 5
 # ---------------------------------------------------------------------------
 # Identity
 #
-# Every entity the desk reports along has a stable identifier and a set of
-# externally visible names or codes that change over time. Resolution is dated: a
-# rename or reassignment that takes effect in September does not apply to a row
-# in March. A venue code is resolved to the account it denoted on the date being
-# resolved as at, and an instrument id is rendered back to the symbol it carried
-# on that date. An instrument symbol names one instrument for life, so reading a
-# symbol to its instrument id needs no date.
+# References to the same clearing entity must carry the same value in a report's
+# dimension column across every report, including across transitively composing
+# effective-dated account rollups, across the venue code assertions in
+# venue_account_map.csv, across an instrument's renames in
+# instrument_symbols.csv, and across transitively composing counterparty
+# reassignments. Two references that denote the same entity are reported
+# identically; two that denote different entities are not.
 # ---------------------------------------------------------------------------
 identity:
   account:
     id: account
     id_source: accounts.csv
-    # A venue quotes its own local code for one of the desk's accounts, asserted
-    # from a date. A fill's account_ref is either such a code or an account id.
+    # A venue's own code for one of the desk's accounts, asserted from a date.
     alias_source: venue_account_map.csv
-    # A venue may reassign its own code to a different account from a later
-    # date, so the code denotes whichever account the latest assertion in force
-    # on that date names. A reference with no assertion in force is an account id.
     alias: {name: venue_code, scope: venue, id: account, effective: effective_from}
-    # Accounts are restructured: a donor rolls into a survivor from a date, and
-    # rollups compose, so resolution follows the chain of rollups already in
-    # force on the date being resolved as at.
+    # A rollup is directional and takes effect on a date: the donor's business
+    # moves to the survivor from effective_from, and not before it.
     chain_source: account_rollups.csv
     chain: {from: donor, to: survivor, effective: effective_from}
-    render: the account id itself
+    # An entity link is a different kind of statement. It is symmetric and it
+    # carries no date: the two accounts named are, and have always been, one
+    # legal entity. Links compose, so accounts joined through a sequence of links
+    # are all one entity.
+    link_source: entity_links.csv
+    link: {a: account_a, b: account_b, symmetric: true, dated: false}
+    # The two relations are applied in this order and are not combined into one:
+    #   1. read the reference through the venue map for that date
+    #   2. follow the rollups in force on that date, to the end of the chain
+    #   3. report the entity the result belongs to, named by the account id that
+    #      sorts first among that entity's accounts
+    # Applying the links before the rollups, or folding both into a single set of
+    # equivalences, reports two accounts as one on a date when only a later
+    # rollup joined them.
+    report_as: the account id that sorts first among its entity's accounts
 
   instrument:
     id: instrument_id
     id_source: instruments.csv
-    # An instrument keeps its id for life and its ticker is renamed from a date.
     # instrument_symbols.csv is the full symbol history: one row per symbol an
     # instrument has carried, valid from effective_from until the next row for
-    # that instrument.
+    # that instrument. A symbol names one instrument for life.
     symbol_source: instrument_symbols.csv
     symbol: {name: symbol, id: instrument_id, effective: effective_from}
-    render: the symbol the instrument carried as at the date the row is being
-            resolved as at, which is the report's own as_at. period.json's
-            report_date is metadata; no report resolves anything as at it
+    report_as: the symbol
 
   counterparty:
     id: lei
     id_source: counterparties.csv
-    # A counterparty is reassigned to a successor LEI from a date, and
-    # reassignments compose.
     chain_source: counterparty_reassignments.csv
     chain: {from: old_lei, to: new_lei, effective: effective_from}
-    render: the LEI itself
+    report_as: the LEI
 
 # A netting set groups the desk's accounts for exposure purposes. Membership is
 # itself dated: an account belongs to whichever set the latest assignment in

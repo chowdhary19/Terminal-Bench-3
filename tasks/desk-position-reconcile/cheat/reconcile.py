@@ -67,6 +67,7 @@ def load_graph(indir: str, db: sqlite3.Connection) -> None:
         CREATE TABLE hair (asset TEXT, bps INTEGER, eff TEXT);
         CREATE TABLE marg (iid TEXT, bps INTEGER, eff TEXT);
         CREATE TABLE reb (venue TEXT, lo INTEGER, bps INTEGER);
+        CREATE TABLE elink (a TEXT, b TEXT);
     """)
 
     def feed(name, sql, cols):
@@ -85,6 +86,7 @@ def load_graph(indir: str, db: sqlite3.Connection) -> None:
     feed("haircuts.csv", "INSERT INTO hair VALUES (?,?,?)", ["asset", "haircut_bps", "effective_from"])
     feed("margin_rates.csv", "INSERT INTO marg VALUES (?,?,?)", ["instrument_id", "initial_margin_bps", "effective_from"])
     feed("rebate_tiers.csv", "INSERT INTO reb VALUES (?,?,?)", ["venue", "min_trailing_usd", "rebate_bps"])
+    feed("entity_links.csv", "INSERT INTO elink VALUES (?,?)", ["account_a", "account_b"])
     db.executescript("""
         CREATE UNIQUE INDEX i_rollup ON rollup (donor);
         CREATE INDEX i_link ON link (venue, code, eff);
@@ -108,6 +110,34 @@ class AsOf:
     def __init__(self, db):
         self.c = db.cursor()
         self.memo = {}
+        # The entity links are symmetric and undated, so they are a plain
+        # equivalence. They are applied only AFTER the dated rollup walk, never
+        # merged into it: an account is named by the id that sorts first among
+        # the accounts of the entity it belongs to.
+        parent = {}
+
+        def find(x):
+            parent.setdefault(x, x)
+            while parent[x] != x:
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            return x
+
+        pairs = list(self.c.execute("SELECT a, b FROM elink"))
+        pairs += list(self.c.execute("SELECT donor, survivor FROM rollup"))
+        for a, b in pairs:
+            ra, rb = find(a), find(b)
+            if ra != rb:
+                parent[ra] = rb
+        rep = {}
+        for k in list(parent):
+            r_ = find(k)
+            if r_ not in rep or k < rep[r_]:
+                rep[r_] = k
+        self._entity = {k: rep[find(k)] for k in parent}
+
+    def entity(self, account):
+        return self._entity.get(account, account)
 
     def _chain(self, table, start, when):
         key = (table, start, when)
@@ -119,7 +149,7 @@ class AsOf:
             seen.add(cur)
             self.c.execute(f"SELECT new_, eff FROM (SELECT {'survivor' if table=='rollup' else 'new'} AS new_, eff FROM {table} WHERE {'donor' if table=='rollup' else 'old'}=?)", (cur,))
             row = self.c.fetchone()
-            if row is None:
+            if row is None or row[1] > when:
                 break
             cur = row[0]
         if len(self.memo) > 30_000:
@@ -131,11 +161,11 @@ class AsOf:
         # A venue may reassign its own code, so take the assertion in force on
         # the date being resolved as at. With none in force the reference is an
         # account id in its own right.
-        self.c.execute("SELECT account FROM link WHERE venue=? AND code=? "
-                       "ORDER BY eff DESC LIMIT 1", (venue, ref))
+        self.c.execute("SELECT account FROM link WHERE venue=? AND code=? AND eff<=? "
+                       "ORDER BY eff DESC LIMIT 1", (venue, ref, when))
         row = self.c.fetchone()
         acct = row[0] if row is not None else ref
-        return self._chain("rollup", acct, when)
+        return self.entity(acct)
 
     def instrument_id(self, symbol):
         """A symbol names exactly one instrument for life, so this direction is
@@ -150,7 +180,8 @@ class AsOf:
         hit = self.memo.get(key)
         if hit is not None:
             return hit
-        self.c.execute("SELECT symbol FROM sym WHERE iid=? ORDER BY eff DESC LIMIT 1", (iid,))
+        self.c.execute("SELECT symbol FROM sym WHERE iid=? AND eff<=? ORDER BY eff DESC LIMIT 1",
+                       (iid, when))
         row = self.c.fetchone()
         out = row[0] if row else iid
         if len(self.memo) > 30_000:
@@ -162,22 +193,23 @@ class AsOf:
         return self._chain("cp", lei, when)
 
     def terms(self, iid, when):
-        self.c.execute("SELECT mult, settle FROM rev WHERE iid=? "
-                       "ORDER BY eff DESC LIMIT 1", (iid,))
+        self.c.execute("SELECT mult, settle FROM rev WHERE iid=? AND eff<=? "
+                       "ORDER BY eff DESC LIMIT 1", (iid, when))
         row = self.c.fetchone()
         if row is None:
             raise KeyError(f"no contract terms for {iid} as at {when}")
         return (row[0], row[1])
 
     def netting_set(self, account, when):
-        self.c.execute("SELECT ns FROM net WHERE account=? ORDER BY eff DESC LIMIT 1", (account,))
+        self.c.execute("SELECT ns FROM net WHERE account=? AND eff<=? ORDER BY eff DESC LIMIT 1",
+                       (account, when))
         row = self.c.fetchone()
         return row[0] if row else account
 
     def commission_bps(self, venue, when, notional_abs_cents):
         """The band whose min_notional is the largest at or below the fill's own
         rounded |notional_usd|, among the rows in force on that date."""
-        self.c.execute("SELECT MAX(eff) FROM sched WHERE venue=?", (venue,))
+        self.c.execute("SELECT MAX(eff) FROM sched WHERE venue=? AND eff<=?", (venue, when))
         row = self.c.fetchone()
         if row is None or row[0] is None:
             return 0
@@ -187,12 +219,14 @@ class AsOf:
         return int(r2[0]) if r2 else 0
 
     def haircut_bps(self, asset, when):
-        self.c.execute("SELECT bps FROM hair WHERE asset=? ORDER BY eff DESC LIMIT 1", (asset,))
+        self.c.execute("SELECT bps FROM hair WHERE asset=? AND eff<=? ORDER BY eff DESC LIMIT 1",
+                       (asset, when))
         row = self.c.fetchone()
         return int(row[0]) if row else 0
 
     def margin_bps(self, iid, when):
-        self.c.execute("SELECT bps FROM marg WHERE iid=? ORDER BY eff DESC LIMIT 1", (iid,))
+        self.c.execute("SELECT bps FROM marg WHERE iid=? AND eff<=? ORDER BY eff DESC LIMIT 1",
+                       (iid, when))
         row = self.c.fetchone()
         return int(row[0]) if row else 0
 
