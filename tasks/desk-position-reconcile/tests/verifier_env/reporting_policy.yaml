@@ -16,6 +16,8 @@ version: 5
 # identically; two that denote different entities are not.
 # ---------------------------------------------------------------------------
 identity:
+  # Every step of a derivation below is resolved as at one date: the date the row
+  # being produced is stated as at.
   account:
     id: account
     id_source: accounts.csv
