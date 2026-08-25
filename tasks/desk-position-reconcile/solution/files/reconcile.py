@@ -252,7 +252,7 @@ class Period:
         if hit is None:
             row = self.c.execute("SELECT ns FROM net WHERE acct=? AND eff<=? ORDER BY eff DESC LIMIT 1",
                                  (acct, when)).fetchone()
-            hit = row[0] if row else acct
+            hit = row[0] if row else "UNASSIGNED"
             if len(self._net) > 60_000:
                 self._net.clear()
             self._net[key] = hit

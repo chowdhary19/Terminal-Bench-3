@@ -32,11 +32,12 @@ from effective dates, the mergers chain, and each merger record names the mergin
 venue handle, which itself has to be resolved as at the merger's date. Separately, and undated, \
 the broker links accounts across books that are one legal entity, and those links compose.
 
-The instruction states the requirement in one sentence: references to the same clearing entity \
-carry the same token, including across effective-dated mergers and across the links. Its natural \
-reading is that merged accounts become one token. The period's semantics are the opposite: a fill \
-booked to an account before that account merged belongs to the account it was booked to, so the \
-account structure is resolved as at each row's own date, which is the trade date on the \
+The instruction states the requirement as the invariant itself: references to the same clearing \
+entity carry the same token, including across effective-dated account mergers and across the links. \
+Reading that invariant correctly takes the clearing convention that a report states the world as at \
+its own date and historical attribution is never restated: a fill booked to an account before that \
+account merged belongs, on the attribution, to the account it was booked to, while later snapshots \
+carry it under the survivor. The governing date is the trade date on the \
 attribution, the snapshot date on the as-of reports, and the report date on the period-end \
 reports. Neither which date governs which report, nor which column carries which meaning, nor how \
 the dated mergers and the undated links compose, is stated anywhere the agent can read. Each is a \

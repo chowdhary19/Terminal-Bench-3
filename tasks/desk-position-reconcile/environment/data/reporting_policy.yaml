@@ -20,6 +20,10 @@ entity_tokens:
 
 reporting_currency: USD
 
+period:
+  source: period.json
+  snapshot_date: one value per entry in snapshot_dates
+
 fx:
   source: fx_rates.csv
   missing_date: previous_published

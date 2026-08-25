@@ -171,6 +171,18 @@ if IN.exists():
     fin_rows = list(csv.DictReader((OUT / "financing.csv").open())) if (OUT / "financing.csv").exists() else []
     check(len(fp) > 5 * max(1, len(fin_rows)), f"allocation roster ({len(fp)}) is far larger than the eligible set ({len(fin_rows)})")
 
+# ---- 7b. the policy's stated fallbacks are honoured by the reference --------
+# The golden is built from the reference, so a reference that disagrees with the
+# policy makes the documented rule the WRONG answer. Check behaviour, not intent.
+check('"UNASSIGNED"' in ref_src, "reference emits the policy's netting fallback (UNASSIGNED)")
+if (OUT / "netting_exposure.csv").exists():
+    vals = {r[1] for r in list(csv.reader((OUT / "netting_exposure.csv").open()))[1:]}
+    check(not any(v.startswith("acct::") for v in vals),
+          "no raw account ref leaks into netting_set (the documented fallback is live)")
+    check("UNASSIGNED" in vals, "the UNASSIGNED fallback actually fires in the period")
+check("period:" in pol_text and "period.json" in pol_text,
+      "policy names period.json as the source of the reporting dates")
+
 # ---- 8. images: nothing reaches the agent that hints, nothing missing at scoring
 env_df = (T / "environment/Dockerfile").read_text()
 check("sqlite3" not in env_df and "procps" not in env_df, "environment image installs no sanctioned-approach tools")
