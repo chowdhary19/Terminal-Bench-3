@@ -24,6 +24,12 @@ period:
   source: period.json
   snapshot_date: one value per entry in snapshot_dates
 
+fills:
+  source: fills/
+  reference: account_ref
+  reference_scope: clearing_scope
+  date: trade_date
+
 fx:
   source: fx_rates.csv
   missing_date: previous_published

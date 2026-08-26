@@ -39,8 +39,10 @@ its own date and historical attribution is never restated: a fill booked to an a
 account merged belongs, on the attribution, to the account it was booked to, while later snapshots \
 carry it under the survivor. The governing date is the trade date on the \
 attribution, the snapshot date on the as-of reports, and the report date on the period-end \
-reports. Neither which date governs which report, nor which column carries which meaning, nor how \
-the dated mergers and the undated links compose, is stated anywhere the agent can read. Each is a \
+reports. Which date governs which report follows from the reports' own schema under that convention, as \
+does what each reference column denotes and how the dated mergers compose with the undated links; \
+the policy states the transforms and the schema and leaves the convention to the practitioner, as \
+the merged task data-anonymization does for its temporal identity model. Each of these is a \
 separate decision, each wrong reading produces a well-formed, deterministic, internally consistent \
 output, and because the accounts are reported as seeded opaque tokens there is nothing in the \
 output to compare against: a second implementation built on the same reading agrees with the \
@@ -100,7 +102,7 @@ I build and operate a production crypto market-making system: a Rust execution e
 cross-venue hedge routing, exchange fill ingestion, and position reconciliation across venues and \
 clearing accounts. Attributing fills to the clearing structure that existed when they traded, \
 rather than the one that exists today, is work I have done on a live desk; this task is a reduced \
-version of it. The concealment discipline, a terse policy over data that carries the semantics and \
+version of it. The design discipline, a terse policy over data that carries the semantics and \
 a graded core the agent cannot observe, follows the merged task data-anonymization.
 """
 

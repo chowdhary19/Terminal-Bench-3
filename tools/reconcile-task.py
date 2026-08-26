@@ -66,7 +66,7 @@ for blk in pol.values():
         for x in (s if isinstance(s, list) else [s] if s else []):
             sources.add(x)
 present = {p.name for p in IN.iterdir()} if IN.exists() else set()
-missing = sorted(s for s in sources if s not in present)
+missing = sorted(s for s in sources if s.rstrip("/") not in present)
 check(not missing, f"every file the policy cites as a source is generated ({len(sources)} cited)")
 if missing:
     bad.append(f"   missing: {missing}")
