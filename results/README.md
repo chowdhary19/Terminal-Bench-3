@@ -16,6 +16,9 @@ adversarial fixtures.
 `rubrics/task-implementation.toml`, produced by `tools/rubric-review.sh`, which reproduces
 `.github/workflows/review.yml`. All 35 pass.
 
+`implementer-probe/` holds the three sealed Opus implementations run as a fairness check before any
+real trial was spent, with the grade for each. All three failed, on two different traps.
+
 `trials/summary.csv` has one row per trial: reward, timestamps, cost, and which verifier tests
 failed. Each trial then has its own directory with the verifier's stdout, the reward file, the job
 manifest, and an exception trace where one exists.
@@ -53,7 +56,8 @@ with a cybersecurity policy refusal, reproducibly, about four minutes in, with z
 errors. The agent never reached the verifier. `exception.txt` in each directory carries the trace.
 
 The substantive anti-exploit evidence is `opus-cheat-1`, where the agent completed a full attack and
-concluded in its own report that no bypass exists, plus the four local fixtures in
+concluded in its own report that no bypass exists. Its reconnaissance and that report are in
+`opus-cheat-1/agent-final-report.txt`. The four local exploit fixtures are in
 `checks/automated-checks.txt`.
 
 ## Reproducing

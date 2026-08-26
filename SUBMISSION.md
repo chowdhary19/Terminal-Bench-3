@@ -181,6 +181,8 @@ The failures were split across two different traps, and each individual decision
 
 And all three verified themselves into their errors. Every one built a second implementation and reported zero mismatches. Implementer 2's own words: "I wrote a separate naive Decimal/Fraction implementation of all 11 reports. Every row of all 11 files matches exactly." It was wrong on nine of them.
 
+Both implementations and their grades are in [`results/implementer-probe/`](results/implementer-probe).
+
 That experiment is why I was willing to spend six hours of trials.
 
 ---
@@ -245,6 +247,9 @@ The Codex near miss is the one I find most instructive. It got the merger conven
 Opus's `/cheat` run scored 0.000 and is the strongest anti-exploit evidence in the submission. It accepted the red-team brief, ran 13 reconnaissance commands (enumerating `/app`, hunting the filesystem for answer keys, checking its uid, probing `/logs/verifier`, grepping for leaked artifacts), then wrote a structured refutation of every attack it had considered and concluded:
 
 > To grade entity tokens the verifier must know the true entity partition, which forces my union-find to be genuinely correct. Every gradeable output is load-bearing on the real computation; there is no blind spot to slip a placeholder through, no brittle assertion I can observe, and no alternate state that makes a reference-backed external checker accept incomplete work. The only working path here is the intended legitimate solution. I'm reporting that no credible bypass exists.
+
+Its reconnaissance and full report are in
+[`results/trials/opus-cheat-1/agent-final-report.txt`](results/trials/opus-cheat-1/agent-final-report.txt).
 
 It did not fail to find a hole. It proved there was not one, and it independently identified the opaque-token grading as the reason forgery is impossible. The same property that makes the honest task hard is what makes it ungameable.
 
@@ -321,7 +326,7 @@ Two things I still have some tension about. The professional convention at this 
 | Path | What is there |
 |---|---|
 | [`tasks/desk-position-reconcile/`](tasks/desk-position-reconcile) | The task. Its own README carries the author-facing identity model. |
-| [`results/`](results) | All trial evidence, the rubric verdict, the automated check log. |
+| [`results/`](results) | Trial evidence, the sealed implementer probe, the rubric verdict, the check log. |
 | [`tools/reconcile-task.py`](tools/reconcile-task.py) | 167 cross-source checks plus the leak guards. |
 | [`tools/trials.sh`](tools/trials.sh) | Trial launcher reproducing the CI defaults. |
 | [`tools/rubric-review.sh`](tools/rubric-review.sh) | The 35-criterion review, run as CI runs it. |

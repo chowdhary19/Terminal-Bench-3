@@ -1,0 +1,10 @@
+VERDICT: FAIL
+  counterparty_exposure.csv: 11565 rows wrong of 20453
+  exposure.csv: 3719 rows wrong of 3466
+  fees.csv: 2260 rows wrong of 3524
+  financing.csv: 292 rows wrong of 247
+  interest.csv: 222 rows wrong of 168
+  lots.csv: 1997 rows wrong of 1674
+  margin.csv: 592 rows wrong of 891
+  netting_exposure.csv: 2744 rows wrong of 2612
+  positions.csv: 4902 rows wrong of 8162
