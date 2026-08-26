@@ -56,6 +56,13 @@ and unit costs from their dates, a pooled financing charge walked down a priorit
 compounding interest at dated rates, trailing-window rebate tiers, banded commissions under \
 dated schedules, and per-instrument margin rounded before it is summed. The identity graph is \
 larger than the 128 MB ceiling, sampled across every process the submission owns while it runs.
+
+The period is synthetically generated, deterministically in a seed, and shaped on the real thing: \
+venue fill exports that each write the account their own way, broker restructuring feeds keyed by \
+venue codes, and reference data revised on effective dates through the year, with the volumes and \
+the noise of a production clearing feed. In the real world this reconciliation is built and run by \
+a clearing operations engineer or a middle-office quant developer at a prime-brokered trading firm, \
+closing the desk's books against its prime broker at period end.
 """
 solution_explanation = """
 Load the venue code map, the mergers, the links and the netting membership into SQLite and read \
