@@ -1,0 +1,14 @@
+trial,reward,trial_id,started,finished,cost_usd,failed_tests
+codex-cheat-1,VOID,yUpyXGB,2026-08-26T12:21:43,2026-08-26T12:26:16,0.0514984,
+codex-cheat-2,VOID,xHUajKC,2026-08-26T12:30:23,2026-08-26T12:34:20,,
+codex-run-1,0,4QpeJ3e,2026-08-26T11:41:32,2026-08-26T12:12:15,2.086888,test_entity_tokens_are_consistent; test_fills_before_a_merger_keep_their_own_account; test_every_report_matches
+codex-run-2,0,Q4sNCMq,2026-08-26T10:51:33,2026-08-26T11:38:51,7.6299736,test_entity_tokens_are_consistent; test_fills_before_a_merger_keep_their_own_account; test_every_report_matches
+codex-run-3,0,bvsjRux,2026-08-26T10:51:33,2026-08-26T11:38:51,7.6299736,test_entity_tokens_are_consistent; test_fills_before_a_merger_keep_their_own_account; test_every_report_matches
+codex-run-voided-auth-1,VOID,AhectFG,2026-08-26T10:44:18,2026-08-26T10:49:11,,
+codex-run-voided-auth-2,VOID,uPfqpdw,2026-08-26T10:44:18,2026-08-26T10:49:11,,
+opus-cheat-1,0,ktV4tB2,2026-08-26T12:14:30,2026-08-26T12:20:03,0.6980354999999999,
+opus-run-1,0,XcAC7yd,2026-08-26T09:31:17,2026-08-26T10:19:19,13.365967500000005,test_entity_tokens_are_consistent; test_every_report_matches
+opus-run-2,0,ZgoRvzr,2026-08-26T06:01:00,2026-08-26T06:50:12,26.511605499999995,test_entity_tokens_are_consistent; test_fills_before_a_merger_keep_their_own_account; test_every_report_matches
+opus-run-3,0,ihacwoX,2026-08-26T06:01:00,2026-08-26T06:50:12,26.511605499999995,test_entity_tokens_are_consistent; test_every_report_matches
+opus-run-voided-1,VOID,hsDEoha,2026-08-26T08:10:02,2026-08-26T08:38:03,4.5178665,
+v1-opus-run-passed-1,1,8d7Ba7A,2026-08-25T01:05:42,2026-08-25T01:51:56,13.581828000000002,

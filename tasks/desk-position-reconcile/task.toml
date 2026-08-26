@@ -108,12 +108,10 @@ period: same seed, identical bytes; different seed, every token changes and noth
 Reward is binary.
 """
 relevant_experience = """
-I build and operate a production crypto market-making system: a Rust execution engine with \
-cross-venue hedge routing, exchange fill ingestion, and position reconciliation across venues and \
-clearing accounts. Attributing fills to the clearing structure that existed when they traded, \
-rather than the one that exists today, is work I have done on a live desk; this task is a reduced \
-version of it. The design discipline, a terse policy over data that carries the semantics and \
-a graded core the agent cannot observe, follows the merged task data-anonymization.
+Founding engineer and quant developer on a trading desk, now a system architect and AI engineer. \
+I have built cross-venue execution and position reconciliation across venues and clearing accounts, \
+where attributing a fill to the clearing structure that existed when it traded, rather than the one \
+that exists today, is the daily correctness problem. This task is a reduced version of that work.
 """
 
 [verifier]

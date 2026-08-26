@@ -1,0 +1,144 @@
+{
+ "checks": {
+  "verifiable": {
+   "outcome": "pass",
+   "explanation": "test.sh runs only mkdir/chmod/pytest against a fully self-contained tests/Dockerfile image (all pip deps pinned and pre-installed at build time); no runtime network installs occur, and grading is a deterministic, programmatic comparison against baked golden data."
+  },
+  "solvable": {
+   "outcome": "pass",
+   "explanation": "solution/files/reconcile.py is a genuine ~600-line implementation (SQLite-backed staging, dated merger walk, BFS entity resolution, chunked memory-bounded computation) that is byte-identical to tests/verifier_env/reconcile_ref.py used to build golden outputs, so it demonstrably passes the verifier; the solution_explanation states an expert implements it in a few hours."
+  },
+  "difficult": {
+   "outcome": "pass",
+   "explanation": "The task requires resolving a multi-layered identity model (venue codes reassigned mid-year, effective-dated chained mergers, undated cross-book links, book-scoped local ids) under a strict as-of reporting convention, plus seven distinct financial computations (FIFO/WAC lots, corporate actions, financing waterfall, compounding interest, rebate tiers, banded commissions, margin) under a 128MB memory ceiling \u2014 well beyond an undergraduate course project."
+  },
+  "interesting": {
+   "outcome": "pass",
+   "explanation": "This mirrors real clearing/reconciliation work done by clearing operations engineers or middle-office quant developers at prime-brokered trading firms, as stated in relevant_experience and difficulty_explanation, and is not a contrived puzzle."
+  },
+  "outcome_verified": {
+   "outcome": "pass",
+   "explanation": "Tests only check the final CSV outputs, token invariants, determinism, and memory usage of the produced program; nothing in the instruction or tests mandates a particular implementation approach or tool."
+  },
+  "anti_cheat_robustness": {
+   "outcome": "pass",
+   "explanation": "Ground truth (golden data) is generated and chmod 0600/0700-locked inside the verifier image only, built in a separate container after the agent's is torn down; the agent image carries no golden data or reference implementation, and cheat/reconcile.py demonstrates a plausible shortcut (ignoring merger dates) fails verification."
+  },
+  "task_security": {
+   "outcome": "pass",
+   "explanation": "All Dockerfiles, scripts, and test harness code perform only legitimate setup/generation/verification actions; no credential access, external exfiltration, obfuscation, or prompt injection was found in any reviewed file."
+  },
+  "functional_verification": {
+   "outcome": "pass",
+   "explanation": "tests/test_outputs.py executes the submitted /app/reconcile.py as a subprocess four times and performs exact/structural comparisons of real CSV output against golden data; it never greps or pattern-matches the submission's source code."
+  },
+  "deterministic_reproducible": {
+   "outcome": "pass",
+   "explanation": "All pip dependencies are exactly version-pinned in both Dockerfiles, inputs are generated deterministically from fixed seeds, and the verifier explicitly checks run-to-run determinism (test_repeat_run_is_identical) and seed sensitivity; no live services are used."
+  },
+  "essential_difficulty": {
+   "outcome": "pass",
+   "explanation": "Rounding modes, column sets, and sort orders are explicitly and mechanically specified in reporting_policy.yaml, so formatting is not a source of ambiguous failure; the hard part is the identity-resolution reasoning (dated mergers, venue codes, links) as the difficulty_explanation itself documents with concrete failure-mode percentages."
+  },
+  "test_instruction_alignment": {
+   "outcome": "pass",
+   "explanation": "Every instruction requirement (schema/sort per policy, entity token consistency including across mergers/links, determinism per seed, seed-sensitivity of tokens only, and the memory ceiling) maps to a specific pytest test, and no test introduces a requirement absent from instruction.md; the 338-line file is justified by the number of distinct, instruction-derived invariants rather than by over-specification."
+  },
+  "novel": {
+   "outcome": "pass",
+   "explanation": "This is a custom, domain-specific scenario (prime-brokered clearing identity resolution with dated mergers/links/venue codes) built on synthetically generated data, not a textbook algorithm or widely available solved problem."
+  },
+  "agentic": {
+   "outcome": "pass",
+   "explanation": "Solving this requires exploring a large, multi-file dataset to discover the identity model and conventions, iterating on a substantial implementation, and validating figures against a policy file \u2014 this cannot be done as a single zero-shot generation."
+  },
+  "reviewable": {
+   "outcome": "pass",
+   "explanation": "Golden/expected values are derived by running a reference implementation (reconcile_ref.py) rather than hardcoded, and task.toml's difficulty/solution/verification explanations plus the README give reviewers enough context to audit correctness without independently being clearing domain experts."
+  },
+  "instruction_concision": {
+   "outcome": "pass",
+   "explanation": "instruction.md is short, uses absolute paths and backticks, states the invariant/requirements without prescribing an implementation approach, contains no headings/fluff/roleplay, and does not list unnecessary tools (e.g., PyYAML is omitted even though it's available)."
+  },
+  "solution_quality": {
+   "outcome": "pass",
+   "explanation": "solution/solve.sh installs a full, separately maintained solution file (solution/files/reconcile.py) rather than inlining a heredoc or echoing a final answer, and the file performs genuine multi-stage computation rather than hardcoding results."
+  },
+  "separate_verifier_configured": {
+   "outcome": "pass",
+   "explanation": "The verifier only reads /app/reconcile.py (the declared artifact) and self-baked /tests/data; its own tooling (pytest, psutil, pytest-json-ctrf) is pre-installed in tests/Dockerfile with no runtime installs in test.sh; and the duplicated generator/policy assets in environment/data and tests/verifier_env are byte-identical."
+  },
+  "environment_hygiene": {
+   "outcome": "pass",
+   "explanation": "environment/Dockerfile copies only the data generator and policy (deleting them after use) and installs just PyYAML, with no tests/solution or test-only deps leaking in; tests/Dockerfile owns /tests via COPY . /tests/, strips the reference implementation (rm -rf /tests/verifier_env) from the scoring image, and installs its own test-only deps; neither Dockerfile uses apt, so no apt pinning/cleanup issue applies."
+  },
+  "structured_data_schema": {
+   "outcome": "pass",
+   "explanation": "The exact output schema (columns, grain, rounding, sort order) is normatively specified in reporting_policy.yaml, which is delivered to the agent under /app/inputs and explicitly referenced by instruction.md as the source of truth, not merely illustrative examples."
+  },
+  "typos": {
+   "outcome": "pass",
+   "explanation": "No typos were found in filenames, paths, commands, or variable names across instruction.md, task.toml, Dockerfiles, test files, and solution/cheat scripts; naming is consistent across all referencing files."
+  },
+  "difficulty_explanation_quality": {
+   "outcome": "pass",
+   "explanation": "difficulty_explanation concretely describes the layered identity-resolution challenge with quantified failure modes (27%/11%/collision), notes the data is synthetically generated but shaped on real production clearing feeds, and states who would do this work in the real world (clearing operations engineer / middle-office quant developer)."
+  },
+  "solution_explanation_quality": {
+   "outcome": "pass",
+   "explanation": "solution_explanation clearly describes the SQLite-backed staging strategy, the merger/link resolution order, and gives concrete runtime/memory figures, and is fully congruent with solution/files/reconcile.py (which is byte-identical to the verifier's reference implementation)."
+  },
+  "verification_explanation_quality": {
+   "outcome": "pass",
+   "explanation": "verification_explanation concretely describes the four verifier runs, the privilege-drop/reward-isolation mechanism, the token-bijection comparison strategy, and the pre-merger-fill check; it matches the actual test files and uses no unjustified tolerance/range checks (the 128MB cap is a hard, instruction-stated ceiling, not a calibrated range)."
+  },
+  "category_and_tags": {
+   "outcome": "pass",
+   "explanation": "category = Operations / subcategory = Finance correctly reflects a clearing/reconciliation task, and tags (clearing, entity-resolution, effective-dating, memory-bounded, reconciliation, pseudonymisation) are specific and descriptive rather than generic."
+  },
+  "task_name": {
+   "outcome": "pass",
+   "explanation": "\"desk-position-reconcile\" is a concise, three-word, kebab-case slug that reasonably conveys the task's domain (desk position reconciliation)."
+  },
+  "resource_configuration": {
+   "outcome": "pass",
+   "explanation": "Agent/verifier timeouts of 3600s and build_timeout_sec=1800 are reasonable given the 900k-fill/1.2M-account dataset generation and multiple verifier runs; the 128MB grading ceiling is a separate, deliberately tight constraint on the submission process, distinct from the container's 8192MB budget which primarily accommodates dataset storage/generation, so difficulty is not artificially inflated by container resources."
+  },
+  "task_readme": {
+   "outcome": "pass",
+   "explanation": "The README adds reviewer-facing context not found elsewhere (the withheld identity-model notes, and the verification tooling list covering tools/reconcile-task.py, build_golden.py's build-time invariant checks, and cheat/reconcile.py), though its metadata table and 'shape of the task' section do restate some figures already in task.toml's difficulty_explanation."
+  },
+  "expert_time_estimate": {
+   "outcome": "pass",
+   "explanation": "24.0 hours is non-zero and plausible for a task the solution_explanation itself frames as \"a few hours\" of coding dominated by discovering conventions and validating figures against a large dataset, consistent with the stated difficulty."
+  },
+  "task_toml_schema": {
+   "outcome": "pass",
+   "explanation": "All fields in [task], [metadata], [verifier], [agent], [environment], and root-level artifacts match the documented valid schema; no invented fields were found."
+  },
+  "no_extraneous_files": {
+   "outcome": "pass",
+   "explanation": "Every file in the task directory is referenced by a Dockerfile, test.sh, or solve.sh (generators/policy by the Dockerfiles, reconcile.py variants by solve.sh/cheat solve.sh, test_outputs.py by test.sh); no leftover or unused files were found."
+  },
+  "artifact_efficiency": {
+   "outcome": "not_applicable",
+   "explanation": "The single artifact (/app/reconcile.py) is the agent's own small deliverable script with no baked baseline applicable \u2014 this matches the rubric's explicit N/A carve-out for inherently small agent-produced deliverables that are themselves the answer."
+  },
+  "verifier_execution_isolation": {
+   "outcome": "pass",
+   "explanation": "test_outputs.py drops privileges to nobody with PR_SET_NO_NEW_PRIVS before executing the submission, /logs/verifier is chmod 700 before any submitted code runs, root's test.sh derives the reward solely from pytest's exit code, output is captured to temp files (not pipes) and the whole session is killed after each run, and golden data is chmod 0600/0700 root-only \u2014 with a cheat oracle (cheat/reconcile.py) demonstrating the hardening catches a plausible shortcut."
+  },
+  "ctrf_reporting": {
+   "outcome": "pass",
+   "explanation": "test.sh runs pytest with --ctrf /logs/verifier/ctrf.json using the pinned pytest-json-ctrf plugin, satisfying the CTRF requirement for a pytest-based verifier."
+  },
+  "do_not_modify_enforced": {
+   "outcome": "not_applicable",
+   "explanation": "instruction.md contains no \"do not modify\" or \"preserve\" style constraint on any concrete artifact, so this criterion does not apply."
+  },
+  "binary_reward": {
+   "outcome": "pass",
+   "explanation": "The only reward-writing code path in test.sh writes exactly 1 or 0 based on pytest's exit code (0 or 1); any other exit code aborts the verifier without writing a reward rather than producing partial credit."
+  }
+ }
+}

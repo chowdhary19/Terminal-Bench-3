@@ -1,0 +1,104 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.5.2
+collected 8 items
+
+tests/test_outputs.py ..F.F...                                           [100%]
+
+=================================== FAILURES ===================================
+______________________ test_entity_tokens_are_consistent _______________________
+
+runs = {'main': RunResult(returncode=0, peak_rss_bytes=70742016, seconds=12.694219631026499, stdout='', stderr='', outdir=Pos...=0, peak_rss_bytes=42184704, seconds=0.6819208749802783, stdout='', stderr='', outdir=PosixPath('/tmp/verify/seed_c'))}
+
+    def test_entity_tokens_are_consistent(runs):
+        """Same entity, same token; different entities, different tokens."""
+>       bijection(runs)
+
+tests/test_outputs.py:267: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+runs = {'main': RunResult(returncode=0, peak_rss_bytes=70742016, seconds=12.694219631026499, stdout='', stderr='', outdir=Pos...=0, peak_rss_bytes=42184704, seconds=0.6819208749802783, stdout='', stderr='', outdir=PosixPath('/tmp/verify/seed_c'))}
+
+    def bijection(runs) -> dict[str, str]:
+        """The submission's token for each of the period's entities, established
+        through the attribution: every fill names one entity as at its own trade
+        date, so the fills that share a golden token must share a submitted token,
+        and no submitted token may span two golden tokens."""
+        got = token_map(runs["main"].outdir)
+        want = token_map(MAIN / "golden")
+        assert set(got) == set(want), (
+            f"attribution.csv does not cover the export exactly: {len(set(want) - set(got))} fills missing, "
+            f"{len(set(got) - set(want))} fills that are not in the export")
+        to_golden: dict[str, set] = defaultdict(set)
+        to_got: dict[str, set] = defaultdict(set)
+        for fid, tok in got.items():
+            to_golden[tok].add(want[fid]); to_got[want[fid]].add(tok)
+        merged = [t for t, s in to_golden.items() if len(s) > 1]
+        if merged:
+            t = sorted(merged)[0]
+            fills = sorted(f for f, k in got.items() if k == t)
+            ex = {}
+            for f in fills:
+                ex.setdefault(want[f], f)
+            a, b = list(ex.values())[:2]
+>           pytest.fail(
+                f"{len(merged)} tokens each cover more than one clearing entity: token {t} is used for "
+                f"fill {a} and fill {b}, which the period books to different entities as at their trade dates")
+E           Failed: 3 tokens each cover more than one clearing entity: token ent_04940fe8378e is used for fill ALT-051f43f94b and fill ALT-07071412c2, which the period books to different entities as at their trade dates
+
+tests/test_outputs.py:227: Failed
+__________________________ test_every_report_matches ___________________________
+
+runs = {'main': RunResult(returncode=0, peak_rss_bytes=70742016, seconds=12.694219631026499, stdout='', stderr='', outdir=Pos...=0, peak_rss_bytes=42184704, seconds=0.6819208749802783, stdout='', stderr='', outdir=PosixPath('/tmp/verify/seed_c'))}
+
+    def test_every_report_matches(runs):
+        """Every report, compared exactly once its tokens are read as entities."""
+>       tr = bijection(runs)
+             ^^^^^^^^^^^^^^^
+
+tests/test_outputs.py:287: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+runs = {'main': RunResult(returncode=0, peak_rss_bytes=70742016, seconds=12.694219631026499, stdout='', stderr='', outdir=Pos...=0, peak_rss_bytes=42184704, seconds=0.6819208749802783, stdout='', stderr='', outdir=PosixPath('/tmp/verify/seed_c'))}
+
+    def bijection(runs) -> dict[str, str]:
+        """The submission's token for each of the period's entities, established
+        through the attribution: every fill names one entity as at its own trade
+        date, so the fills that share a golden token must share a submitted token,
+        and no submitted token may span two golden tokens."""
+        got = token_map(runs["main"].outdir)
+        want = token_map(MAIN / "golden")
+        assert set(got) == set(want), (
+            f"attribution.csv does not cover the export exactly: {len(set(want) - set(got))} fills missing, "
+            f"{len(set(got) - set(want))} fills that are not in the export")
+        to_golden: dict[str, set] = defaultdict(set)
+        to_got: dict[str, set] = defaultdict(set)
+        for fid, tok in got.items():
+            to_golden[tok].add(want[fid]); to_got[want[fid]].add(tok)
+        merged = [t for t, s in to_golden.items() if len(s) > 1]
+        if merged:
+            t = sorted(merged)[0]
+            fills = sorted(f for f, k in got.items() if k == t)
+            ex = {}
+            for f in fills:
+                ex.setdefault(want[f], f)
+            a, b = list(ex.values())[:2]
+>           pytest.fail(
+                f"{len(merged)} tokens each cover more than one clearing entity: token {t} is used for "
+                f"fill {a} and fill {b}, which the period books to different entities as at their trade dates")
+E           Failed: 3 tokens each cover more than one clearing entity: token ent_04940fe8378e is used for fill ALT-051f43f94b and fill ALT-07071412c2, which the period books to different entities as at their trade dates
+
+tests/test_outputs.py:227: Failed
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED tests/test_outputs.py::test_every_report_has_its_schema
+PASSED tests/test_outputs.py::test_entity_tokens_are_well_formed
+PASSED tests/test_outputs.py::test_fills_before_a_merger_keep_their_own_account
+PASSED tests/test_outputs.py::test_repeat_run_is_identical
+PASSED tests/test_outputs.py::test_tokens_change_with_the_seed_and_nothing_else_does
+PASSED tests/test_outputs.py::test_peak_memory_within_cap
+FAILED tests/test_outputs.py::test_entity_tokens_are_consistent - Failed: 3 t...
+FAILED tests/test_outputs.py::test_every_report_matches - Failed: 3 tokens ea...
+========================= 2 failed, 6 passed in 25.10s =========================
+reward: 0

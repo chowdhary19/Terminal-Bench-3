@@ -1,0 +1,308 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.5.2
+collected 8 items
+
+tests/test_outputs.py EEEEEEEE                                           [100%]
+
+==================================== ERRORS ====================================
+______________ ERROR at setup of test_every_report_has_its_schema ______________
+
+    @pytest.fixture(scope="module")
+    def runs() -> dict[str, RunResult]:
+        assert TOOL.exists(), "expected the reconciliation at /app/reconcile.py"
+        r = {
+            "main": run_tool(MAIN / "inputs", OUT / "main", 42, timeout_s=1500),
+            "det_a": run_tool(SAMPLE / "inputs", OUT / "det_a", 42, timeout_s=300),
+            "det_b": run_tool(SAMPLE / "inputs", OUT / "det_b", 42, timeout_s=300),
+            "seed_c": run_tool(SAMPLE / "inputs", OUT / "seed_c", 43, timeout_s=300),
+        }
+        for name, res in r.items():
+>           assert res.returncode == 0, (
+                f"the reconciliation exited {res.returncode} on the {name} run\n"
+                f"stdout: {res.stdout[-2000:]}\nstderr: {res.stderr[-2000:]}")
+E           AssertionError: the reconciliation exited 1 on the main run
+E             stdout: 
+E             stderr: Traceback (most recent call last):
+E               File "/app/reconcile.py", line 1811, in <module>
+E                 sys.exit(main())
+E                          ~~~~^^
+E               File "/app/reconcile.py", line 1806, in main
+E                 Reconciler(args).run()
+E                 ~~~~~~~~~~~~~~~~~~~~^^
+E               File "/app/reconcile.py", line 888, in run
+E                 self.pass_records()
+E                 ~~~~~~~~~~~~~~~~~^^
+E               File "/app/reconcile.py", line 1265, in pass_records
+E                 rec = lot_pack(ent, instr, ai, d & 0xFFFF, qty, unit,
+E                                uscale, fid)
+E             struct.error: 'i' format requires -2147483648 <= number <= 2147483647
+E             
+E           assert 1 == 0
+E            +  where 1 = RunResult(returncode=1, peak_rss_bytes=146350080, seconds=4.642798959976062, stdout='', stderr='Traceback (most recent...fid)\nstruct.error: \'i\' format requires -2147483648 <= number <= 2147483647\n', outdir=PosixPath('/tmp/verify/main')).returncode
+
+tests/test_outputs.py:193: AssertionError
+_____________ ERROR at setup of test_entity_tokens_are_well_formed _____________
+
+    @pytest.fixture(scope="module")
+    def runs() -> dict[str, RunResult]:
+        assert TOOL.exists(), "expected the reconciliation at /app/reconcile.py"
+        r = {
+            "main": run_tool(MAIN / "inputs", OUT / "main", 42, timeout_s=1500),
+            "det_a": run_tool(SAMPLE / "inputs", OUT / "det_a", 42, timeout_s=300),
+            "det_b": run_tool(SAMPLE / "inputs", OUT / "det_b", 42, timeout_s=300),
+            "seed_c": run_tool(SAMPLE / "inputs", OUT / "seed_c", 43, timeout_s=300),
+        }
+        for name, res in r.items():
+>           assert res.returncode == 0, (
+                f"the reconciliation exited {res.returncode} on the {name} run\n"
+                f"stdout: {res.stdout[-2000:]}\nstderr: {res.stderr[-2000:]}")
+E           AssertionError: the reconciliation exited 1 on the main run
+E             stdout: 
+E             stderr: Traceback (most recent call last):
+E               File "/app/reconcile.py", line 1811, in <module>
+E                 sys.exit(main())
+E                          ~~~~^^
+E               File "/app/reconcile.py", line 1806, in main
+E                 Reconciler(args).run()
+E                 ~~~~~~~~~~~~~~~~~~~~^^
+E               File "/app/reconcile.py", line 888, in run
+E                 self.pass_records()
+E                 ~~~~~~~~~~~~~~~~~^^
+E               File "/app/reconcile.py", line 1265, in pass_records
+E                 rec = lot_pack(ent, instr, ai, d & 0xFFFF, qty, unit,
+E                                uscale, fid)
+E             struct.error: 'i' format requires -2147483648 <= number <= 2147483647
+E             
+E           assert 1 == 0
+E            +  where 1 = RunResult(returncode=1, peak_rss_bytes=146350080, seconds=4.642798959976062, stdout='', stderr='Traceback (most recent...fid)\nstruct.error: \'i\' format requires -2147483648 <= number <= 2147483647\n', outdir=PosixPath('/tmp/verify/main')).returncode
+
+tests/test_outputs.py:193: AssertionError
+_____________ ERROR at setup of test_entity_tokens_are_consistent ______________
+
+    @pytest.fixture(scope="module")
+    def runs() -> dict[str, RunResult]:
+        assert TOOL.exists(), "expected the reconciliation at /app/reconcile.py"
+        r = {
+            "main": run_tool(MAIN / "inputs", OUT / "main", 42, timeout_s=1500),
+            "det_a": run_tool(SAMPLE / "inputs", OUT / "det_a", 42, timeout_s=300),
+            "det_b": run_tool(SAMPLE / "inputs", OUT / "det_b", 42, timeout_s=300),
+            "seed_c": run_tool(SAMPLE / "inputs", OUT / "seed_c", 43, timeout_s=300),
+        }
+        for name, res in r.items():
+>           assert res.returncode == 0, (
+                f"the reconciliation exited {res.returncode} on the {name} run\n"
+                f"stdout: {res.stdout[-2000:]}\nstderr: {res.stderr[-2000:]}")
+E           AssertionError: the reconciliation exited 1 on the main run
+E             stdout: 
+E             stderr: Traceback (most recent call last):
+E               File "/app/reconcile.py", line 1811, in <module>
+E                 sys.exit(main())
+E                          ~~~~^^
+E               File "/app/reconcile.py", line 1806, in main
+E                 Reconciler(args).run()
+E                 ~~~~~~~~~~~~~~~~~~~~^^
+E               File "/app/reconcile.py", line 888, in run
+E                 self.pass_records()
+E                 ~~~~~~~~~~~~~~~~~^^
+E               File "/app/reconcile.py", line 1265, in pass_records
+E                 rec = lot_pack(ent, instr, ai, d & 0xFFFF, qty, unit,
+E                                uscale, fid)
+E             struct.error: 'i' format requires -2147483648 <= number <= 2147483647
+E             
+E           assert 1 == 0
+E            +  where 1 = RunResult(returncode=1, peak_rss_bytes=146350080, seconds=4.642798959976062, stdout='', stderr='Traceback (most recent...fid)\nstruct.error: \'i\' format requires -2147483648 <= number <= 2147483647\n', outdir=PosixPath('/tmp/verify/main')).returncode
+
+tests/test_outputs.py:193: AssertionError
+_____ ERROR at setup of test_fills_before_a_merger_keep_their_own_account ______
+
+    @pytest.fixture(scope="module")
+    def runs() -> dict[str, RunResult]:
+        assert TOOL.exists(), "expected the reconciliation at /app/reconcile.py"
+        r = {
+            "main": run_tool(MAIN / "inputs", OUT / "main", 42, timeout_s=1500),
+            "det_a": run_tool(SAMPLE / "inputs", OUT / "det_a", 42, timeout_s=300),
+            "det_b": run_tool(SAMPLE / "inputs", OUT / "det_b", 42, timeout_s=300),
+            "seed_c": run_tool(SAMPLE / "inputs", OUT / "seed_c", 43, timeout_s=300),
+        }
+        for name, res in r.items():
+>           assert res.returncode == 0, (
+                f"the reconciliation exited {res.returncode} on the {name} run\n"
+                f"stdout: {res.stdout[-2000:]}\nstderr: {res.stderr[-2000:]}")
+E           AssertionError: the reconciliation exited 1 on the main run
+E             stdout: 
+E             stderr: Traceback (most recent call last):
+E               File "/app/reconcile.py", line 1811, in <module>
+E                 sys.exit(main())
+E                          ~~~~^^
+E               File "/app/reconcile.py", line 1806, in main
+E                 Reconciler(args).run()
+E                 ~~~~~~~~~~~~~~~~~~~~^^
+E               File "/app/reconcile.py", line 888, in run
+E                 self.pass_records()
+E                 ~~~~~~~~~~~~~~~~~^^
+E               File "/app/reconcile.py", line 1265, in pass_records
+E                 rec = lot_pack(ent, instr, ai, d & 0xFFFF, qty, unit,
+E                                uscale, fid)
+E             struct.error: 'i' format requires -2147483648 <= number <= 2147483647
+E             
+E           assert 1 == 0
+E            +  where 1 = RunResult(returncode=1, peak_rss_bytes=146350080, seconds=4.642798959976062, stdout='', stderr='Traceback (most recent...fid)\nstruct.error: \'i\' format requires -2147483648 <= number <= 2147483647\n', outdir=PosixPath('/tmp/verify/main')).returncode
+
+tests/test_outputs.py:193: AssertionError
+_________________ ERROR at setup of test_every_report_matches __________________
+
+    @pytest.fixture(scope="module")
+    def runs() -> dict[str, RunResult]:
+        assert TOOL.exists(), "expected the reconciliation at /app/reconcile.py"
+        r = {
+            "main": run_tool(MAIN / "inputs", OUT / "main", 42, timeout_s=1500),
+            "det_a": run_tool(SAMPLE / "inputs", OUT / "det_a", 42, timeout_s=300),
+            "det_b": run_tool(SAMPLE / "inputs", OUT / "det_b", 42, timeout_s=300),
+            "seed_c": run_tool(SAMPLE / "inputs", OUT / "seed_c", 43, timeout_s=300),
+        }
+        for name, res in r.items():
+>           assert res.returncode == 0, (
+                f"the reconciliation exited {res.returncode} on the {name} run\n"
+                f"stdout: {res.stdout[-2000:]}\nstderr: {res.stderr[-2000:]}")
+E           AssertionError: the reconciliation exited 1 on the main run
+E             stdout: 
+E             stderr: Traceback (most recent call last):
+E               File "/app/reconcile.py", line 1811, in <module>
+E                 sys.exit(main())
+E                          ~~~~^^
+E               File "/app/reconcile.py", line 1806, in main
+E                 Reconciler(args).run()
+E                 ~~~~~~~~~~~~~~~~~~~~^^
+E               File "/app/reconcile.py", line 888, in run
+E                 self.pass_records()
+E                 ~~~~~~~~~~~~~~~~~^^
+E               File "/app/reconcile.py", line 1265, in pass_records
+E                 rec = lot_pack(ent, instr, ai, d & 0xFFFF, qty, unit,
+E                                uscale, fid)
+E             struct.error: 'i' format requires -2147483648 <= number <= 2147483647
+E             
+E           assert 1 == 0
+E            +  where 1 = RunResult(returncode=1, peak_rss_bytes=146350080, seconds=4.642798959976062, stdout='', stderr='Traceback (most recent...fid)\nstruct.error: \'i\' format requires -2147483648 <= number <= 2147483647\n', outdir=PosixPath('/tmp/verify/main')).returncode
+
+tests/test_outputs.py:193: AssertionError
+________________ ERROR at setup of test_repeat_run_is_identical ________________
+
+    @pytest.fixture(scope="module")
+    def runs() -> dict[str, RunResult]:
+        assert TOOL.exists(), "expected the reconciliation at /app/reconcile.py"
+        r = {
+            "main": run_tool(MAIN / "inputs", OUT / "main", 42, timeout_s=1500),
+            "det_a": run_tool(SAMPLE / "inputs", OUT / "det_a", 42, timeout_s=300),
+            "det_b": run_tool(SAMPLE / "inputs", OUT / "det_b", 42, timeout_s=300),
+            "seed_c": run_tool(SAMPLE / "inputs", OUT / "seed_c", 43, timeout_s=300),
+        }
+        for name, res in r.items():
+>           assert res.returncode == 0, (
+                f"the reconciliation exited {res.returncode} on the {name} run\n"
+                f"stdout: {res.stdout[-2000:]}\nstderr: {res.stderr[-2000:]}")
+E           AssertionError: the reconciliation exited 1 on the main run
+E             stdout: 
+E             stderr: Traceback (most recent call last):
+E               File "/app/reconcile.py", line 1811, in <module>
+E                 sys.exit(main())
+E                          ~~~~^^
+E               File "/app/reconcile.py", line 1806, in main
+E                 Reconciler(args).run()
+E                 ~~~~~~~~~~~~~~~~~~~~^^
+E               File "/app/reconcile.py", line 888, in run
+E                 self.pass_records()
+E                 ~~~~~~~~~~~~~~~~~^^
+E               File "/app/reconcile.py", line 1265, in pass_records
+E                 rec = lot_pack(ent, instr, ai, d & 0xFFFF, qty, unit,
+E                                uscale, fid)
+E             struct.error: 'i' format requires -2147483648 <= number <= 2147483647
+E             
+E           assert 1 == 0
+E            +  where 1 = RunResult(returncode=1, peak_rss_bytes=146350080, seconds=4.642798959976062, stdout='', stderr='Traceback (most recent...fid)\nstruct.error: \'i\' format requires -2147483648 <= number <= 2147483647\n', outdir=PosixPath('/tmp/verify/main')).returncode
+
+tests/test_outputs.py:193: AssertionError
+___ ERROR at setup of test_tokens_change_with_the_seed_and_nothing_else_does ___
+
+    @pytest.fixture(scope="module")
+    def runs() -> dict[str, RunResult]:
+        assert TOOL.exists(), "expected the reconciliation at /app/reconcile.py"
+        r = {
+            "main": run_tool(MAIN / "inputs", OUT / "main", 42, timeout_s=1500),
+            "det_a": run_tool(SAMPLE / "inputs", OUT / "det_a", 42, timeout_s=300),
+            "det_b": run_tool(SAMPLE / "inputs", OUT / "det_b", 42, timeout_s=300),
+            "seed_c": run_tool(SAMPLE / "inputs", OUT / "seed_c", 43, timeout_s=300),
+        }
+        for name, res in r.items():
+>           assert res.returncode == 0, (
+                f"the reconciliation exited {res.returncode} on the {name} run\n"
+                f"stdout: {res.stdout[-2000:]}\nstderr: {res.stderr[-2000:]}")
+E           AssertionError: the reconciliation exited 1 on the main run
+E             stdout: 
+E             stderr: Traceback (most recent call last):
+E               File "/app/reconcile.py", line 1811, in <module>
+E                 sys.exit(main())
+E                          ~~~~^^
+E               File "/app/reconcile.py", line 1806, in main
+E                 Reconciler(args).run()
+E                 ~~~~~~~~~~~~~~~~~~~~^^
+E               File "/app/reconcile.py", line 888, in run
+E                 self.pass_records()
+E                 ~~~~~~~~~~~~~~~~~^^
+E               File "/app/reconcile.py", line 1265, in pass_records
+E                 rec = lot_pack(ent, instr, ai, d & 0xFFFF, qty, unit,
+E                                uscale, fid)
+E             struct.error: 'i' format requires -2147483648 <= number <= 2147483647
+E             
+E           assert 1 == 0
+E            +  where 1 = RunResult(returncode=1, peak_rss_bytes=146350080, seconds=4.642798959976062, stdout='', stderr='Traceback (most recent...fid)\nstruct.error: \'i\' format requires -2147483648 <= number <= 2147483647\n', outdir=PosixPath('/tmp/verify/main')).returncode
+
+tests/test_outputs.py:193: AssertionError
+________________ ERROR at setup of test_peak_memory_within_cap _________________
+
+    @pytest.fixture(scope="module")
+    def runs() -> dict[str, RunResult]:
+        assert TOOL.exists(), "expected the reconciliation at /app/reconcile.py"
+        r = {
+            "main": run_tool(MAIN / "inputs", OUT / "main", 42, timeout_s=1500),
+            "det_a": run_tool(SAMPLE / "inputs", OUT / "det_a", 42, timeout_s=300),
+            "det_b": run_tool(SAMPLE / "inputs", OUT / "det_b", 42, timeout_s=300),
+            "seed_c": run_tool(SAMPLE / "inputs", OUT / "seed_c", 43, timeout_s=300),
+        }
+        for name, res in r.items():
+>           assert res.returncode == 0, (
+                f"the reconciliation exited {res.returncode} on the {name} run\n"
+                f"stdout: {res.stdout[-2000:]}\nstderr: {res.stderr[-2000:]}")
+E           AssertionError: the reconciliation exited 1 on the main run
+E             stdout: 
+E             stderr: Traceback (most recent call last):
+E               File "/app/reconcile.py", line 1811, in <module>
+E                 sys.exit(main())
+E                          ~~~~^^
+E               File "/app/reconcile.py", line 1806, in main
+E                 Reconciler(args).run()
+E                 ~~~~~~~~~~~~~~~~~~~~^^
+E               File "/app/reconcile.py", line 888, in run
+E                 self.pass_records()
+E                 ~~~~~~~~~~~~~~~~~^^
+E               File "/app/reconcile.py", line 1265, in pass_records
+E                 rec = lot_pack(ent, instr, ai, d & 0xFFFF, qty, unit,
+E                                uscale, fid)
+E             struct.error: 'i' format requires -2147483648 <= number <= 2147483647
+E             
+E           assert 1 == 0
+E            +  where 1 = RunResult(returncode=1, peak_rss_bytes=146350080, seconds=4.642798959976062, stdout='', stderr='Traceback (most recent...fid)\nstruct.error: \'i\' format requires -2147483648 <= number <= 2147483647\n', outdir=PosixPath('/tmp/verify/main')).returncode
+
+tests/test_outputs.py:193: AssertionError
+=========================== short test summary info ============================
+ERROR tests/test_outputs.py::test_every_report_has_its_schema - AssertionErro...
+ERROR tests/test_outputs.py::test_entity_tokens_are_well_formed - AssertionEr...
+ERROR tests/test_outputs.py::test_entity_tokens_are_consistent - AssertionErr...
+ERROR tests/test_outputs.py::test_fills_before_a_merger_keep_their_own_account
+ERROR tests/test_outputs.py::test_every_report_matches - AssertionError: the ...
+ERROR tests/test_outputs.py::test_repeat_run_is_identical - AssertionError: t...
+ERROR tests/test_outputs.py::test_tokens_change_with_the_seed_and_nothing_else_does
+ERROR tests/test_outputs.py::test_peak_memory_within_cap - AssertionError: th...
+============================== 8 errors in 5.56s ===============================
+reward: 0

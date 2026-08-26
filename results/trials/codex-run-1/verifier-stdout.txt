@@ -1,0 +1,125 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.5.2
+collected 8 items
+
+tests/test_outputs.py ..FFF...                                           [100%]
+
+=================================== FAILURES ===================================
+______________________ test_entity_tokens_are_consistent _______________________
+
+runs = {'main': RunResult(returncode=0, peak_rss_bytes=39796736, seconds=56.60606910800561, stdout='', stderr='', outdir=Posi...=0, peak_rss_bytes=35278848, seconds=1.6870320009766147, stdout='', stderr='', outdir=PosixPath('/tmp/verify/seed_c'))}
+
+    def test_entity_tokens_are_consistent(runs):
+        """Same entity, same token; different entities, different tokens."""
+>       bijection(runs)
+
+tests/test_outputs.py:267: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+runs = {'main': RunResult(returncode=0, peak_rss_bytes=39796736, seconds=56.60606910800561, stdout='', stderr='', outdir=Posi...=0, peak_rss_bytes=35278848, seconds=1.6870320009766147, stdout='', stderr='', outdir=PosixPath('/tmp/verify/seed_c'))}
+
+    def bijection(runs) -> dict[str, str]:
+        """The submission's token for each of the period's entities, established
+        through the attribution: every fill names one entity as at its own trade
+        date, so the fills that share a golden token must share a submitted token,
+        and no submitted token may span two golden tokens."""
+        got = token_map(runs["main"].outdir)
+        want = token_map(MAIN / "golden")
+        assert set(got) == set(want), (
+            f"attribution.csv does not cover the export exactly: {len(set(want) - set(got))} fills missing, "
+            f"{len(set(got) - set(want))} fills that are not in the export")
+        to_golden: dict[str, set] = defaultdict(set)
+        to_got: dict[str, set] = defaultdict(set)
+        for fid, tok in got.items():
+            to_golden[tok].add(want[fid]); to_got[want[fid]].add(tok)
+        merged = [t for t, s in to_golden.items() if len(s) > 1]
+        if merged:
+            t = sorted(merged)[0]
+            fills = sorted(f for f, k in got.items() if k == t)
+            ex = {}
+            for f in fills:
+                ex.setdefault(want[f], f)
+            a, b = list(ex.values())[:2]
+>           pytest.fail(
+                f"{len(merged)} tokens each cover more than one clearing entity: token {t} is used for "
+                f"fill {a} and fill {b}, which the period books to different entities as at their trade dates")
+E           Failed: 13 tokens each cover more than one clearing entity: token ent_1623438580f8 is used for fill ALT-0057129462 and fill ALT-51a0c8fee4, which the period books to different entities as at their trade dates
+
+tests/test_outputs.py:227: Failed
+______________ test_fills_before_a_merger_keep_their_own_account _______________
+
+runs = {'main': RunResult(returncode=0, peak_rss_bytes=39796736, seconds=56.60606910800561, stdout='', stderr='', outdir=Posi...=0, peak_rss_bytes=35278848, seconds=1.6870320009766147, stdout='', stderr='', outdir=PosixPath('/tmp/verify/seed_c'))}
+
+    def test_fills_before_a_merger_keep_their_own_account(runs):
+        """A fill booked to an account before that account merged into another is the
+        business of the account it was booked to, not of the account it later merged
+        into. Each pair below is one such fill and a fill of the entity it would be
+        misattributed to; they must not share a token."""
+        got = token_map(runs["main"].outdir)
+        pairs = read_csv(MAIN / "golden" / "pre_merger_fills.csv", ["fill_id", "partner_fill_id"])
+        assert pairs, "the period has no fill that predates a merger of its account"
+        wrong = [(f, g) for f, g in pairs if got.get(f) == got.get(g)]
+>       assert not wrong, (
+            f"{len(wrong)} of {len(pairs)} fills booked before their account merged are reported under the "
+            f"entity the account later merged into; first: fill {wrong[0][0]} shares token "
+            f"{got.get(wrong[0][0])} with fill {wrong[0][1]}")
+E       AssertionError: 168 of 243940 fills booked before their account merged are reported under the entity the account later merged into; first: fill ALT-045293c65e shares token ent_c714b014d741 with fill ALT-002cb4cb8b
+E       assert not [('ALT-045293c65e', 'ALT-002cb4cb8b'), ('ALT-14ff0fe251', 'ALT-002cb4cb8b'), ('ALT-1f2ab8d55a', 'ALT-002cb4cb8b'), ('ALT-235fa3da05', 'ALT-002cb4cb8b'), ('ALT-291815af80', 'ALT-002cb4cb8b'), ('ALT-2dbac09103', 'ALT-002cb4cb8b'), ...]
+
+tests/test_outputs.py:279: AssertionError
+__________________________ test_every_report_matches ___________________________
+
+runs = {'main': RunResult(returncode=0, peak_rss_bytes=39796736, seconds=56.60606910800561, stdout='', stderr='', outdir=Posi...=0, peak_rss_bytes=35278848, seconds=1.6870320009766147, stdout='', stderr='', outdir=PosixPath('/tmp/verify/seed_c'))}
+
+    def test_every_report_matches(runs):
+        """Every report, compared exactly once its tokens are read as entities."""
+>       tr = bijection(runs)
+             ^^^^^^^^^^^^^^^
+
+tests/test_outputs.py:287: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+runs = {'main': RunResult(returncode=0, peak_rss_bytes=39796736, seconds=56.60606910800561, stdout='', stderr='', outdir=Posi...=0, peak_rss_bytes=35278848, seconds=1.6870320009766147, stdout='', stderr='', outdir=PosixPath('/tmp/verify/seed_c'))}
+
+    def bijection(runs) -> dict[str, str]:
+        """The submission's token for each of the period's entities, established
+        through the attribution: every fill names one entity as at its own trade
+        date, so the fills that share a golden token must share a submitted token,
+        and no submitted token may span two golden tokens."""
+        got = token_map(runs["main"].outdir)
+        want = token_map(MAIN / "golden")
+        assert set(got) == set(want), (
+            f"attribution.csv does not cover the export exactly: {len(set(want) - set(got))} fills missing, "
+            f"{len(set(got) - set(want))} fills that are not in the export")
+        to_golden: dict[str, set] = defaultdict(set)
+        to_got: dict[str, set] = defaultdict(set)
+        for fid, tok in got.items():
+            to_golden[tok].add(want[fid]); to_got[want[fid]].add(tok)
+        merged = [t for t, s in to_golden.items() if len(s) > 1]
+        if merged:
+            t = sorted(merged)[0]
+            fills = sorted(f for f, k in got.items() if k == t)
+            ex = {}
+            for f in fills:
+                ex.setdefault(want[f], f)
+            a, b = list(ex.values())[:2]
+>           pytest.fail(
+                f"{len(merged)} tokens each cover more than one clearing entity: token {t} is used for "
+                f"fill {a} and fill {b}, which the period books to different entities as at their trade dates")
+E           Failed: 13 tokens each cover more than one clearing entity: token ent_1623438580f8 is used for fill ALT-0057129462 and fill ALT-51a0c8fee4, which the period books to different entities as at their trade dates
+
+tests/test_outputs.py:227: Failed
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED tests/test_outputs.py::test_every_report_has_its_schema
+PASSED tests/test_outputs.py::test_entity_tokens_are_well_formed
+PASSED tests/test_outputs.py::test_repeat_run_is_identical
+PASSED tests/test_outputs.py::test_tokens_change_with_the_seed_and_nothing_else_does
+PASSED tests/test_outputs.py::test_peak_memory_within_cap
+FAILED tests/test_outputs.py::test_entity_tokens_are_consistent - Failed: 13 ...
+FAILED tests/test_outputs.py::test_fills_before_a_merger_keep_their_own_account
+FAILED tests/test_outputs.py::test_every_report_matches - Failed: 13 tokens e...
+==================== 3 failed, 5 passed in 71.85s (0:01:11) ====================
+reward: 0
