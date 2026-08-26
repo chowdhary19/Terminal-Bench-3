@@ -90,7 +90,7 @@ fi
 # ---- agent configuration, from .github/harbor-run-defaults.yml -------------
 if [ "$CONFIG" = "opus" ]; then
     AGENT="claude-code"; MODEL="anthropic/claude-opus-5"
-    KWARGS=(--ak reasoning_effort=max --ae CLAUDE_FORCE_OAUTH=1)
+    KWARGS=(--ak reasoning_effort=max --ae CLAUDE_FORCE_OAUTH=1)   # token appended after it is read
 else
     AGENT="codex";       MODEL="openai/gpt-5.6-sol"
     KWARGS=(--ak reasoning_effort=xhigh)
@@ -170,7 +170,7 @@ else
     if [ -n "${OPENAI_API_KEY:-}" ]; then
         echo "Using OPENAI_API_KEY from this shell (${#OPENAI_API_KEY} chars), as CI does."
     elif [ -f "$HOME/.codex/auth.json" ]; then
-        export CODEX_FORCE_AUTH_JSON=1
+        KWARGS+=(--ae CODEX_FORCE_AUTH_JSON=1)
         echo "No OPENAI_API_KEY set; telling harbor to inject your existing codex login"
         echo "(~/.codex/auth.json) into the container. This script does not read it."
     else
@@ -181,6 +181,11 @@ else
 fi
 
 # ---- run ------------------------------------------------------------------
+# Pass the token the way the assignment documents it, as an agent env var.
+if [ "$CONFIG" = "opus" ]; then
+    KWARGS+=(--ae "CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN")
+fi
+
 for i in $(seq 1 "$REPS"); do
     job="$CONFIG-$MODE-$TASK-$(date +%Y%m%d-%H%M%S)-$$"
     [ -n "$PAR" ] && job="$CONFIG-$MODE-x$PAR-$TASK-$(date +%Y%m%d-%H%M%S)-$$"

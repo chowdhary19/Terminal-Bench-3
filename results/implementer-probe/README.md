@@ -29,6 +29,24 @@ exactly." It was wrong on nine of them.
 
 ## Reproducing
 
+Each directory holds the submission that agent wrote and the grade it received. To regrade one, run
+its `reconcile.py` against a generated period and compare against a golden built from the same
+period:
+
 ```bash
-python3 tools/grade-implementer.py <output-dir> <golden-dir>
+# generate a period and build the golden for it
+T=tasks/desk-position-reconcile
+python3 $T/environment/data/generate_inputs.py /tmp/period --seed 4242 \
+    --accounts 40000 --rollups 12000 --links 6000 --fills 25000 --days 365 --shards 4
+cp $T/environment/data/reporting_policy.yaml /tmp/period/
+python3 $T/tests/verifier_env/build_golden.py /tmp/period /tmp/golden
+
+# run one implementer's submission and grade it
+python3 results/implementer-probe/implementer-1/reconcile.py /tmp/period \
+    --policy /tmp/period/reporting_policy.yaml --output /tmp/impl1 --seed 42
+python3 tools/grade-implementer.py /tmp/impl1 /tmp/golden
 ```
+
+`tools/grade-implementer.py` applies the same token bijection logic the real verifier uses: it reads
+the attribution to establish which submitted token corresponds to which real entity, then compares
+every report exactly through that mapping.

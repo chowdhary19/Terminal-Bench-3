@@ -1,4 +1,4 @@
-# Automated check results — desk-position-reconcile @ b16a0038
+# Automated check results — desk-position-reconcile @ 73e68f5c (docs), task files @ b16a0038
 # Generated 2026-08-26T21:41:37Z
 
 ## Static checks (checks/*.sh, checks/*.py)

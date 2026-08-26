@@ -32,19 +32,31 @@ For context on the bar: the previous version of this same task was solved by Opu
 
 ---
 
-## Why this domain
+## Why this domain, and why not an AI task
+
+The obvious move for someone who works with AI systems daily is to write an AI task: an eval harness, a RAG pipeline, a training loop, an inference server under load. I considered it and rejected it, for three reasons that I think matter more than they first appear.
+
+**AI engineering is the models' home turf.** These systems have read every paper, every framework changelog, every blog post about attention kernels and retrieval chunking. On transformer internals or eval design, a frontier model is better read than almost any human practitioner. Choosing that domain means competing where the model is strongest and where my own edge is smallest. The point of the exercise is to find the frontier, not to hand the model the part of the map it has memorized.
+
+**AI tasks resist exact verification.** Training is nondeterministic. Metrics are thresholds, not equalities. "The retrieval improved" is a judgment, and "loss went down" is a range. TB3 asks for tasks where a solution passes if and only if it correctly completes the work, and I did not want to spend the week arguing with my own tolerance windows. Clearing reconciliation has one right answer per figure, to the cent, and 1,011,820 rows of them.
+
+**Most importantly: ML engineering gives you feedback.** You run the thing and the loss curve tells you whether you were right. That observable signal is exactly what a benchmark task must not provide, and I only understood why after four days of failures. An agent that can check itself will converge. The failure mode I needed does not occur naturally in a domain built on measurable iteration.
+
+So I went to the domain I actually know from the inside.
 
 I spent the first part of my career as a founding engineer and quant developer building execution and position reconciliation for a trading desk. Attributing a fill to the clearing structure that existed on the day it traded, rather than the structure that exists today, is the daily correctness problem in that job. Get it wrong and you restate a regulatory report, which is a very bad morning.
 
-I picked it for three reasons.
+Regulated financial operations has the property AI engineering lacks. Its conventions live in practitioners' heads and in what regulators expect, not in documentation. In machine learning, when something is true, someone writes a paper about it. In middle-office clearing, the rule that a report states the world as at its own date and that historical attribution is never restated is so fundamental that nobody on a desk would think to write it down. New joiners absorb it in their first month. It is never in the spec, because on a real desk the spec is written by people who already know.
 
-It is real compensated work. A clearing operations engineer or middle-office quant developer does exactly this at every prime-brokered firm, every period end.
+That gap between what a domain knows and what a domain writes down is the whole task.
 
-It has a professional convention at its center that is genuinely not obvious from outside the field. Reports are stated as at a date, and historical attribution is never restated. Everyone on a desk knows this. It is almost never written down, because nobody on a desk needs telling.
+Three other things made it the right choice.
 
-And it is programmatically verifiable to the cent. Every figure has one right answer.
+It is real compensated work. A clearing operations engineer or middle-office quant developer does exactly this at every prime-brokered firm, every period end, and the volumes in the task are the volumes of a production feed.
 
-That combination is rare. Most domains give you two of the three.
+TB2 already covered software engineering, sys-admin, security and scientific computing, and TB3 explicitly asks for a wider range of domains. Middle-office financial operations is not represented, and it is a large amount of genuine, paid, difficult computer work.
+
+And it is verifiable to the cent, which brings me back to the first reason. Every figure has one right answer, so the verifier can be exact rather than approximate, and an agent cannot pass by being close.
 
 ---
 
@@ -284,8 +296,9 @@ Three runs are excluded as execution failures, per the brief. Two Codex runs die
 Everything runs from the repository root. See [`README.md`](README.md) for the full walkthrough, including how to author a new task in this repo.
 
 ```bash
-# static checks
+# static checks: 22 shell, 1 python
 for c in checks/check-*.sh; do bash "$c" tasks/desk-position-reconcile; done
+python3 checks/check-ai-detection.py tasks/desk-position-reconcile
 
 # cross-source reconciliation and leak guards (167 checks)
 python3 tools/reconcile-task.py
@@ -331,5 +344,6 @@ Two things I still have some tension about. The professional convention at this 
 | [`tools/trials.sh`](tools/trials.sh) | Trial launcher reproducing the CI defaults. |
 | [`tools/rubric-review.sh`](tools/rubric-review.sh) | The 35-criterion review, run as CI runs it. |
 | [`tools/check-sync.sh`](tools/check-sync.sh) | Guards the verifier image's duplicated sources against drift. |
+| [`NOTICE`](NOTICE) | Authorship, license of the contributed work, and the scope of the evaluation grant. |
 
 This repository is a fork of `harbor-framework/terminal-bench-3`. Everything outside `tasks/desk-position-reconcile/`, `results/`, `tools/` and this document is upstream, kept so the task can be checked against the real CI.

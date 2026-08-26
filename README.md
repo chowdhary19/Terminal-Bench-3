@@ -40,8 +40,9 @@ You need Docker and [uv](https://docs.astral.sh/uv/). All commands run from the 
 Validate the task without any model credentials:
 
 ```bash
-# 23 static checks
+# 23 static checks: 22 shell, 1 python
 for c in checks/check-*.sh; do bash "$c" tasks/desk-position-reconcile; done
+python3 checks/check-ai-detection.py tasks/desk-position-reconcile
 
 # 167 cross-source checks: policy against reference against verifier against
 # generator against instruction against the built images, plus the leak guards
@@ -56,35 +57,104 @@ uvx --python 3.12 --from harbor==0.14.0 harbor run -p tasks/desk-position-reconc
     --agent nop --env docker -o ./jobs
 ```
 
-Run the implementation rubric, which needs a Claude Code token
-(`claude setup-token`, then export it as `CLAUDE_CODE_OAUTH_TOKEN`):
+### Getting model credentials
+
+Both the rubric review and the agent trials run a coding agent inside a container, so the container
+needs credentials. A login on your own machine does not reach it, which is worth knowing before you
+spend an hour on a trial.
+
+For Claude Code, mint an OAuth token and put it in your shell:
+
+```bash
+claude setup-token
+```
+
+Select the token it prints, copy it, then read it from the clipboard so it never lands in your shell
+history:
+
+```bash
+export CLAUDE_CODE_OAUTH_TOKEN="$(pbpaste)"   # macOS; use xclip -o on Linux
+echo "${#CLAUDE_CODE_OAUTH_TOKEN} chars"      # expect roughly 105 to 110
+```
+
+A short count means the copy was truncated, which happens when the token wraps across two terminal
+lines and you drag-select instead of triple-clicking. Confirm it authenticates before spending a
+trial:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' --max-time 20 https://api.anthropic.com/v1/messages \
+  -H "authorization: Bearer $CLAUDE_CODE_OAUTH_TOKEN" \
+  -H "anthropic-version: 2023-06-01" -H "anthropic-beta: oauth-2025-04-20" \
+  -H "content-type: application/json" \
+  -d '{"model":"claude-opus-5","max_tokens":1,"messages":[{"role":"user","content":"hi"}]}'
+```
+
+200, 400 or 429 all mean the token is live. A subscription token returns 429 from the raw Messages
+API almost regardless of remaining quota, and that says nothing about your Claude Code allowance.
+401 or 403 means mint a new one. Note that minting a token revokes every earlier one, so do not run
+`claude setup-token` while a trial is in flight.
+
+For Codex, log in once:
+
+```bash
+codex login
+```
+
+That writes `~/.codex/auth.json`. The launcher detects it and tells Harbor to inject it into the
+container with `--ae CODEX_FORCE_AUTH_JSON=1`. If you would rather use an API key, export
+`OPENAI_API_KEY` instead and the launcher will use that, which is what CI does.
+
+### Running the implementation rubric
 
 ```bash
 tools/rubric-review.sh
 ```
 
-This reproduces `.github/workflows/review.yml` exactly: same rubric file, same reviewer prompt, same
-staging layout, same model.
+This reproduces `.github/workflows/review.yml` exactly: the same rubric file, the same reviewer
+prompt, the same staging layout, and the same model. It prints a pass or fail line for each of the 35
+criteria and the explanation for any failure. Takes about five to seven minutes.
 
-Run agent trials against the CI defaults in `.github/harbor-run-defaults.yml`:
+### Running agent trials
+
+The launcher reads the CI defaults from `.github/harbor-run-defaults.yml`, so the agent, model and
+reasoning effort match what TB3 CI uses.
 
 ```bash
-tools/trials.sh opus  run 1          # claude-code / opus-5 / effort max
-tools/trials.sh codex run 1          # codex / gpt-5.6-sol / effort xhigh
-tools/trials.sh --parallel 2 opus run   # two isolated trials at once
-tools/trials.sh opus  cheat 1        # adversarial, must score 0
-tools/trials.sh --summary            # one row per trial
+tools/trials.sh opus  run 1             # claude-code / claude-opus-5 / effort max
+tools/trials.sh codex run 1             # codex / gpt-5.6-sol / effort xhigh
+tools/trials.sh --parallel 2 opus run   # two isolated trials in one job
+tools/trials.sh opus  cheat 1           # adversarial, must score 0
+tools/trials.sh codex cheat 1
+tools/trials.sh --summary               # one row per trial, reward and cost
+tools/trials.sh --dry-run opus cheat    # set a cheat trial up and inspect it, spending nothing
 ```
+
+Each trial takes 45 to 60 minutes. `--parallel 2` runs two at once in a single Harbor job, each with
+its own environment container and its own verifier, which halves the wall clock. Three concurrent
+trials need more than 8 GB allocated to Docker.
 
 The launcher refuses to start on a dirty working tree, so every trial is tied to a commit. It
 classifies authentication failures, rate limits, crashes and timeouts as void rather than as model
 failures, which is what the assignment requires. In cheat mode it copies the task outside the
-repository before appending the adversarial prompt, so the repository is never modified.
+repository before appending `rubrics/hack-trial-prompt.md`, so the repository is never modified.
 
-Claude Code authenticates from `CLAUDE_CODE_OAUTH_TOKEN` in your shell. Codex authenticates either
-from `OPENAI_API_KEY` or, if you have run `codex login`, from `~/.codex/auth.json`, which the
-launcher tells Harbor to inject into the container. A host login alone does not reach the container,
-which is worth knowing before you spend an hour on a trial.
+It passes credentials using the flags the assignment documents:
+`--ae CLAUDE_FORCE_OAUTH=1 --ae CLAUDE_CODE_OAUTH_TOKEN=<token>` for Claude Code, and
+`--ae CODEX_FORCE_AUTH_JSON=1` for Codex. It never writes a token to disk, never puts one on a
+command line visible in `ps`, and clears it on exit.
+
+To run a trial by hand instead, without the launcher:
+
+```bash
+uvx --python 3.12 --from harbor==0.14.0 harbor run -p tasks/desk-position-reconcile \
+    --agent claude-code --model anthropic/claude-opus-5 --env docker --yes \
+    --ae CLAUDE_FORCE_OAUTH=1 --ae CLAUDE_CODE_OAUTH_TOKEN="$CLAUDE_CODE_OAUTH_TOKEN" \
+    --ak reasoning_effort=max -o ./jobs
+
+uvx --python 3.12 --from harbor==0.14.0 harbor run -p tasks/desk-position-reconcile \
+    --agent codex --model openai/gpt-5.6-sol --env docker --yes \
+    --ae CODEX_FORCE_AUTH_JSON=1 --ak reasoning_effort=xhigh -o ./jobs
+```
 
 ## Working on the task
 
@@ -122,8 +192,22 @@ docker build -t dpr-tests:latest tasks/desk-position-reconcile/tests
 | [`tasks/desk-position-reconcile/`](tasks/desk-position-reconcile) | The task, with its own README for the author-facing identity model |
 | [`results/`](results) | Trial evidence, rubric verdict, automated check log |
 | [`tools/`](tools) | Trial launcher, rubric review, cross-source checks, adversarial fixtures |
+| [`NOTICE`](NOTICE) | Authorship, license of the contributed work, and the evaluation grant |
 
 Everything else is upstream terminal-bench.
+
+## License and authorship
+
+The contributed task and everything listed in [`NOTICE`](NOTICE) are original work by Yuvraj Singh
+Chowdhary, released under the Apache License 2.0, the same license as upstream terminal-bench, so
+the task stays compatible with the project it was built for.
+
+Apache 2.0 requires that the copyright attribution in `NOTICE` be retained in any redistribution or
+derivative work. `NOTICE` also records the scope of the Klavis AI evaluation grant: permission to
+review and run the work for that evaluation, with no transfer of ownership or intellectual property.
+
+The task carries the Harbor canary GUID as an anti-contamination marker. Please do not include
+`tasks/desk-position-reconcile/` or `results/` in any training dataset.
 
 ---
 
