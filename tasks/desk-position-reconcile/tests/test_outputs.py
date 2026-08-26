@@ -17,8 +17,10 @@ import csv
 import ctypes
 import os
 import re
+import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from collections import defaultdict
@@ -119,26 +121,51 @@ def sample_peak_rss(proc: subprocess.Popen, interval_s: float = 0.05) -> int:
 
 
 def run_tool(inputs: Path, outdir: Path, seed: int, timeout_s: int) -> RunResult:
+    """Execute the submission unprivileged, and wait on the process, not on a pipe.
+
+    stdout and stderr go to files rather than pipes. Waiting on a pipe means
+    waiting for every copy of that file descriptor to close, which a submission
+    can hold open indefinitely by double-forking a grandchild; waiting on the
+    process itself cannot be held open by anything the submission does. The whole
+    session is killed either way, so nothing it started outlives the run.
+    """
     outdir.mkdir(parents=True, exist_ok=True)
     os.chmod(outdir, 0o777)
     cmd = [sys.executable, str(TOOL), str(inputs), "--policy", str(inputs / "reporting_policy.yaml"),
            "--output", str(outdir), "--seed", str(seed), "--max-memory", f"{MAX_MEMORY_MB}MB"]
     started = time.monotonic()
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                            cwd="/tmp", preexec_fn=_drop_privileges, start_new_session=True)
-    holder = {"peak": 0}
-    t = threading.Thread(target=lambda: holder.update(peak=sample_peak_rss(proc)), daemon=True)
-    t.start()
-    try:
-        out, err = proc.communicate(timeout=timeout_s)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        out, err = proc.communicate()
-        t.join(timeout=2)
+    with tempfile.TemporaryDirectory() as td:
+        op, ep = Path(td) / "out", Path(td) / "err"
+        with op.open("w") as of, ep.open("w") as ef:
+            proc = subprocess.Popen(cmd, stdout=of, stderr=ef, text=True, cwd="/tmp",
+                                    preexec_fn=_drop_privileges, start_new_session=True)
+            holder = {"peak": 0}
+            t = threading.Thread(target=lambda: holder.update(peak=sample_peak_rss(proc)), daemon=True)
+            t.start()
+
+            def kill_session():
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except (ProcessLookupError, PermissionError):
+                    pass
+
+            timed_out = False
+            try:
+                proc.wait(timeout=timeout_s)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+            finally:
+                kill_session()
+                try:
+                    proc.wait(timeout=15)
+                except subprocess.TimeoutExpired:
+                    pass
+                t.join(timeout=2)
+        out = op.read_text(errors="replace")
+        err = ep.read_text(errors="replace")
+    if timed_out:
         pytest.fail(f"the reconciliation exceeded {timeout_s}s on {inputs}")
-    t.join(timeout=2)
-    return RunResult(proc.returncode, holder["peak"], time.monotonic() - started,
-                     out or "", err or "", outdir)
+    return RunResult(proc.returncode, holder["peak"], time.monotonic() - started, out, err, outdir)
 
 
 def read_csv(path: Path, cols: list[str]) -> list[list[str]]:

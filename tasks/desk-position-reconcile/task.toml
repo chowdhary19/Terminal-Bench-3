@@ -15,7 +15,7 @@ author_email = "chowdharyyuvrajsingh@gmail.com"
 category = "Operations"
 subcategory = "Finance"
 tags = ["clearing", "entity-resolution", "effective-dating", "memory-bounded", "reconciliation", "pseudonymisation"]
-expert_time_estimate_hours = 26.0
+expert_time_estimate_hours = 24.0
 difficulty_explanation = """
 Eleven reports are cut from one year of a prime-brokered market-making desk's clearing: 900,000 \
 fills across four venues, 1.2 million clearing accounts in four books, and a policy file that \
@@ -68,7 +68,10 @@ at, follow the mergers in force on that date to the account carrying the busines
 apply the links as an undated equivalence to name the entity; the entity's token is a seeded hash of \
 its canonical name, so it is the same on every report and every date and changes with the seed.
 
-Price each fill once at its trade date and stage it, accumulating the desk's daily traded notional \
+An expert who knows the intended approach implements it in a few hours: the reference is about six \
+hundred lines of plain Python written against SQLite and small dated lists. The time estimate is \
+dominated by discovering the conventions from the data and validating the figures, not by volume of \
+code. Price each fill once at its trade date and stage it, accumulating the desk's daily traded notional \
 per venue for the rebate window. Replay in period-end-entity and trade order for the lots, carrying \
 both cost bases as exact rationals and restating quantities and unit costs through the split \
 factor between the trade date and the report date. Emit each report with one ordered scan over the \
