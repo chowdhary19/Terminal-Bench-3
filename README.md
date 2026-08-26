@@ -1,12 +1,33 @@
 # Terminal-Bench 3 task contribution: desk-position-reconcile
 
-This is a fork of [terminal-bench](https://github.com/harbor-framework/terminal-bench) containing one
-contributed task, built for the Klavis AI founding engineer work trial by
+This is a fork of [terminal-bench](https://github.com/harbor-framework/terminal-bench) carrying a
+Terminal-Bench 3 task built for the Klavis AI founding engineer work trial by
 **Yuvraj Singh Chowdhary** (system architect and AI engineer, founding engineer at Synvolv;
 previously founding engineer and quant developer at Blockhouse).
 
-The fork is kept intact so the task can be checked against the real CI, static checks and
-implementation rubric rather than a copy of them. Upstream's README follows below this section.
+**The submitted task is [`tasks/desk-position-reconcile`](tasks/desk-position-reconcile).**
+
+Four earlier tasks of mine are also in `tasks/`: `sandbox-upgrade-continuity`,
+`venue-settlement-close`, `settlement-stream-close` and `venue-gateway-cutover`. Frontier agents
+solved all four, and they are kept deliberately rather than deleted, because working out why they
+were too easy is how the submitted task was designed. [SUBMISSION.md](SUBMISSION.md) tells that
+story, and keeping them means a reader can check it.
+
+The fork is kept intact so the task can be validated against the real CI, static checks, rubric and
+reviewer prompt rather than a copy of them. Upstream's README follows below this section.
+
+### Seeing only my work
+
+Everything I wrote branches from upstream commit `642ae58d`. To review the contribution alone,
+without upstream's history:
+
+```bash
+git diff 642ae58d..HEAD --stat        # every file I added or changed
+git log --oneline 642ae58d..HEAD      # my commits, oldest last
+```
+
+On GitHub the same view is the compare page for `642ae58d...<this branch>`, which shows my commits
+and diffs and nothing else.
 
 ## Start here
 

@@ -346,4 +346,8 @@ Two things I still have some tension about. The professional convention at this 
 | [`tools/check-sync.sh`](tools/check-sync.sh) | Guards the verifier image's duplicated sources against drift. |
 | [`NOTICE`](NOTICE) | Authorship, license of the contributed work, and the scope of the evaluation grant. |
 
-This repository is a fork of `harbor-framework/terminal-bench-3`. Everything outside `tasks/desk-position-reconcile/`, `results/`, `tools/` and this document is upstream, kept so the task can be checked against the real CI.
+This repository is a fork of `harbor-framework/terminal-bench`, kept intact so the task can be validated against the real CI, static checks, rubric and reviewer prompt rather than a copy of them. My tooling reads five upstream files directly: `rubrics/task-implementation.toml`, `tools/rubric-regression/templates/instruction.md`, `rubrics/hack-trial-prompt.md`, `.github/harbor-run-defaults.yml` and `.github/workflows/review.yml`.
+
+Everything I wrote branches from upstream commit `642ae58d`. `git diff 642ae58d..HEAD --stat` and `git log --oneline 642ae58d..HEAD` show the contribution and nothing else.
+
+Four earlier tasks of mine are also in `tasks/`: `sandbox-upgrade-continuity`, `venue-settlement-close`, `settlement-stream-close` and `venue-gateway-cutover`. Agents solved all four. They are kept rather than deleted so the account in [The five days](#the-five-days) can be checked rather than taken on trust.
