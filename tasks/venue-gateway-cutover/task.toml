@@ -64,10 +64,9 @@ at the end. Missing collected files exit non-zero without a reward so harness br
 as a verifier error rather than a scoreable zero. Reward is binary.
 """
 relevant_experience = """
-I build and operate a production crypto market-making system: a Rust execution engine with \
-cross-venue hedge routing, exchange fill ingestion, and position reconciliation across venues. \
-Exactly-once ingestion over an at-least-once market-data feed, and the quiet position drift that \
-follows a reconnect, is work I have done on a live desk; this task is a reduced version of it.
+Founding engineer and quant developer on a trading desk, now a system architect and AI engineer. \
+I have built cross-venue execution and position reconciliation across venues and clearing accounts, \
+which is the domain this task is drawn from.
 """
 
 [verifier]

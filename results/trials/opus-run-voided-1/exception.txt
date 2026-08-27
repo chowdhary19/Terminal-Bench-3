@@ -1,20 +1,20 @@
 Traceback (most recent call last):
-  File "/Users/yuvraj/.cache/uv/archive-v0/8z5Y0g4XsE5qqnTx/lib/python3.12/site-packages/harbor/trial/single_step.py", line 71, in _run_agent
+  File "<uv-env>/lib/python3.12/site-packages/harbor/trial/single_step.py", line 71, in _run_agent
     await self._run_agent_phase(
-  File "/Users/yuvraj/.cache/uv/archive-v0/8z5Y0g4XsE5qqnTx/lib/python3.12/site-packages/harbor/trial/trial.py", line 380, in _run_agent_phase
+  File "<uv-env>/lib/python3.12/site-packages/harbor/trial/trial.py", line 380, in _run_agent_phase
     await asyncio.wait_for(
   File "/opt/homebrew/Cellar/python@3.12/3.12.10/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
     return await fut
            ^^^^^^^^^
-  File "/Users/yuvraj/.cache/uv/archive-v0/8z5Y0g4XsE5qqnTx/lib/python3.12/site-packages/harbor/agents/installed/base.py", line 52, in wrapper
+  File "<uv-env>/lib/python3.12/site-packages/harbor/agents/installed/base.py", line 52, in wrapper
     return await fn(self, instruction, *args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/yuvraj/.cache/uv/archive-v0/8z5Y0g4XsE5qqnTx/lib/python3.12/site-packages/harbor/agents/installed/claude_code.py", line 1408, in run
+  File "<uv-env>/lib/python3.12/site-packages/harbor/agents/installed/claude_code.py", line 1408, in run
     await self.exec_as_agent(
-  File "/Users/yuvraj/.cache/uv/archive-v0/8z5Y0g4XsE5qqnTx/lib/python3.12/site-packages/harbor/agents/installed/base.py", line 412, in exec_as_agent
+  File "<uv-env>/lib/python3.12/site-packages/harbor/agents/installed/base.py", line 412, in exec_as_agent
     return await self._exec(
            ^^^^^^^^^^^^^^^^^
-  File "/Users/yuvraj/.cache/uv/archive-v0/8z5Y0g4XsE5qqnTx/lib/python3.12/site-packages/harbor/agents/installed/base.py", line 379, in _exec
+  File "<uv-env>/lib/python3.12/site-packages/harbor/agents/installed/base.py", line 379, in _exec
     raise self._classify_exec_error(command, result)
 harbor.agents.installed.base.ApiRateLimitError: Command failed (exit 1): export PATH="$HOME/.local/bin:$PATH"; claude --verbose --output-format=stream-json --effort max --permission-mode=bypassPermissions --print -- 'Build the desk'"'"'s clearing reconciliation at `/app/reconcile.py`. It reads the clearing period under `/app/inputs` and writes one CSV per report defined in `/app/inputs/reporting_policy.yaml` to the output directory. It is run as:
 

@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
-"""Adversarial probe: the reference, but tokens ignore the seed."""
-import runpy, sys, re, pathlib
-src = pathlib.Path("/tmp/constprobe/ref.py").read_text()
-src = src.replace('f"{self.seed}|clearing_account|{entity}"', 'f"0|clearing_account|{entity}"')
-exec(compile(src, "ref", "exec"), {"__name__": "__main__"})
+"""Adversarial fixture: the reference, but the entity token ignores --seed.
+
+Must score 0. The verifier's seed-sensitivity test requires every token to change
+when the seed changes while no other column does.
+
+Usage: mounted at /app/reconcile.py with the reference at /app/_ref.py.
+"""
+import pathlib, sys
+
+ref = pathlib.Path("/app/_ref.py")
+src = ref.read_text().replace('f"{self.seed}|clearing_account|{entity}"',
+                              'f"0|clearing_account|{entity}"')
+exec(compile(src, str(ref), "exec"), {"__name__": "__main__", "sys": sys})

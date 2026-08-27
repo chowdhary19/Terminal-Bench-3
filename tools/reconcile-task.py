@@ -16,9 +16,27 @@ OUT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/v2f_out")
 GOLD = pathlib.Path(sys.argv[2] if len(sys.argv) > 2 else "/tmp/v2f_gold")
 IN = pathlib.Path(sys.argv[3] if len(sys.argv) > 3 else "/tmp/v2f")
 
-bad, note = [], []
+bad, note, skipped = [], [], []
 def check(cond, msg):
     (note if cond else bad).append(msg)
+
+# The output and golden directories are produced by running the reference and the
+# golden builder. On a fresh checkout they do not exist, so build them rather than
+# failing with an unhelpful traceback.
+if not (OUT / "attribution.csv").exists() or not (GOLD / "attribution.csv").exists() or not IN.exists():
+    import shutil, subprocess as _sp
+    T0 = pathlib.Path(__file__).resolve().parent.parent / "tasks/desk-position-reconcile"
+    print(f"priming {IN}, {OUT} and {GOLD} (a few minutes on the full period)...", flush=True)
+    if not IN.exists():
+        _sp.run([sys.executable, str(T0 / "environment/data/generate_inputs.py"), str(IN),
+                 "--seed", "1", "--accounts", "1200000", "--rollups", "400000", "--links", "250000",
+                 "--fills", "900000", "--days", "365", "--shards", "18"], check=True)
+    shutil.copy(T0 / "environment/data/reporting_policy.yaml", IN / "reporting_policy.yaml")
+    if not (OUT / "attribution.csv").exists():
+        _sp.run([sys.executable, str(T0 / "solution/files/reconcile.py"), str(IN),
+                 "--output", str(OUT), "--seed", "42"], check=True)
+    if not (GOLD / "attribution.csv").exists():
+        _sp.run([sys.executable, str(T0 / "tests/verifier_env/build_golden.py"), str(IN), str(GOLD)], check=True)
 
 pol_text = (T / "environment/data/reporting_policy.yaml").read_text()
 pol = yaml.safe_load(pol_text)
@@ -206,7 +224,7 @@ if subprocess.run(["docker", "info"], capture_output=True).returncode == 0:
         if gap:
             bad.append(f"   missing at scoring time: {gap}")
     else:
-        note.append("images not built; parity not checked")
+        skipped.append("images not built locally; image parity not checked")
 
 # ---- 9. sync ----------------------------------------------------------------
 for a, b in (("tests/verifier_env/reconcile_ref.py", "solution/files/reconcile.py"),
@@ -215,9 +233,11 @@ for a, b in (("tests/verifier_env/reconcile_ref.py", "solution/files/reconcile.p
     check((T / a).read_text() == (T / b).read_text(), f"{a} in sync with {b}")
 
 print("\n".join(f"  ok   {m}" for m in note))
+print("\n".join(f"  skip {m}" for m in skipped))
 print()
 if bad:
     print("\n".join(f"  FAIL {m}" for m in bad))
-    print(f"\n{len(note)} checks passed, {len(bad)} FAILED")
+    print(f"\n{len(note)} passed, {len(skipped)} skipped, {len(bad)} FAILED")
     raise SystemExit(1)
-print(f"  all {len(note)} reconciliation checks passed")
+tail = f", {len(skipped)} skipped" if skipped else ""
+print(f"  all {len(note)} reconciliation checks passed{tail}")

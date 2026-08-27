@@ -1,7 +1,7 @@
 """Grade an implementer's output exactly as the verifier does: tokens read as a
 partition through the attribution bijection, every other report compared exactly."""
 import csv, sys, ast, pathlib, collections, re
-TASK = pathlib.Path("/Users/yuvraj/work/klavis/klavis-tb3-worktrial/tasks/desk-position-reconcile")
+TASK = pathlib.Path(__file__).resolve().parent.parent / "tasks/desk-position-reconcile"
 ns = {}
 for n in ast.parse((TASK / "tests/test_outputs.py").read_text()).body:
     if isinstance(n, ast.Assign) and getattr(n.targets[0], "id", "") == "REPORTS":
@@ -51,3 +51,4 @@ for name, (cols, k, tok) in sorted(R.items()):
     d = len(set(a) ^ set(b)) + sum(1 for x in a if x in b and a[x] != b[x])
     if d: fails.append(f"{name}: {d} rows wrong of {len(b)}")
 print(("VERDICT: PASS" if not fails else "VERDICT: FAIL") + ("\n  " + "\n  ".join(fails) if fails else ""))
+raise SystemExit(1 if fails else 0)

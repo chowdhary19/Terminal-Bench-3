@@ -20,8 +20,10 @@
 # In cheat mode the task is copied OUTSIDE the repository before the adversarial
 # prompt is appended, exactly as CI does it, so the repository is never mutated.
 #
-# Secrets: the Claude token is read into this process only. It is never echoed,
-# never written to disk, never placed on a command line, and is cleared on exit.
+# Secrets: the Claude token is read into this process only. It is never echoed and
+# never written to disk. It IS passed to harbor as an --ae argument, which is the
+# form the assignment documents, so it is visible in `ps` output for the duration
+# of the run. It is unset on exit.
 # Codex authentication is left entirely to the codex CLI; this script does not
 # read, copy or print it.
 
@@ -48,7 +50,7 @@ DRY=""; PAR=""
 while :; do
     case "${1:-}" in
         --dry-run)  DRY=1; shift ;;
-        --parallel) PAR="${2:-}"; shift 2 ;;
+        --parallel) [ $# -ge 2 ] || { echo "--parallel needs a number" >&2; exit 2; }; PAR="$2"; shift 2 ;;
         *) break ;;
     esac
 done
@@ -77,7 +79,7 @@ if [ "$MODE" = "cheat" ]; then
     INSTRUCTION="$CHEAT_DIR/$TASK/instruction.md"
     # Same two steps as run-cheat-trials.yml: strip the honest-mode "do not
     # cheat" sentences, then append the red-team brief after the description.
-    sed -i '' -E 's/[[:space:]]*[Dd]o not cheat[^.]*\.//g' "$INSTRUCTION"
+    perl -0pi -e 's/\s*[Dd]o not cheat[^.]*\.//g' "$INSTRUCTION"
     printf '\n\n' >> "$INSTRUCTION"
     cat rubrics/hack-trial-prompt.md >> "$INSTRUCTION"
     TASK_PATH="$CHEAT_DIR/$TASK"

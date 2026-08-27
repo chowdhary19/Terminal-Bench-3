@@ -49,10 +49,12 @@ Six standard trials against the current TB3 CI defaults, six genuine failures:
 |---|---|---|
 | claude-code, `anthropic/claude-opus-5`, effort max | 3 | 0.000, 0.000, 0.000 |
 | codex, `openai/gpt-5.6-sol`, effort xhigh | 3 | 0.000, 0.000, 0.000 |
-| Adversarial (`/cheat`), both configurations | 2 | 0.000 |
+| Adversarial (`/cheat`), claude-code | 1 | 0.000, after a completed attack |
+| Adversarial (`/cheat`), codex | 2 | 0.000, both terminated early by an OpenAI safety refusal |
 
-Oracle scores 1.000, nop scores 0.000, static checks pass 23 of 23, and the 35-criterion
-implementation rubric passes 35 of 35. Raw evidence is in [`results/`](results).
+Oracle scores 1.000 and nop scores 0.000. The 22 shell static checks pass; the 23rd needs a
+`GPTZERO_API_KEY` and is skipped without one. The 35-criterion implementation rubric returns 33
+pass, 2 not applicable, 0 fail. Raw evidence is in [`results/`](results).
 
 ## Running it yourself
 
@@ -61,8 +63,10 @@ You need Docker and [uv](https://docs.astral.sh/uv/). All commands run from the 
 Validate the task without any model credentials:
 
 ```bash
-# 23 static checks: 22 shell, 1 python
-for c in checks/check-*.sh; do bash "$c" tasks/desk-position-reconcile; done
+# 22 shell static checks, reporting any failure
+f=0; for c in checks/check-*.sh; do bash "$c" tasks/desk-position-reconcile >/dev/null || { echo "FAIL $c"; f=$((f+1)); }; done; echo "$f failed"
+
+# the 23rd is a python check; it needs GPTZERO_API_KEY and skips without one
 python3 checks/check-ai-detection.py tasks/desk-position-reconcile
 
 # 167 cross-source checks: policy against reference against verifier against
@@ -74,7 +78,7 @@ uvx --python 3.12 --from harbor==0.18.0 harbor run -p tasks/desk-position-reconc
     --agent oracle --env docker -o ./jobs
 
 # an agent that does nothing must score 0.0
-uvx --python 3.12 --from harbor==0.14.0 harbor run -p tasks/desk-position-reconcile \
+uvx --python 3.12 --from harbor==0.18.0 harbor run -p tasks/desk-position-reconcile \
     --agent nop --env docker -o ./jobs
 ```
 
@@ -131,14 +135,17 @@ container with `--ae CODEX_FORCE_AUTH_JSON=1`. If you would rather use an API ke
 tools/rubric-review.sh
 ```
 
-This reproduces `.github/workflows/review.yml` exactly: the same rubric file, the same reviewer
-prompt, the same staging layout, and the same model. It prints a pass or fail line for each of the 35
-criteria and the explanation for any failure. Takes about five to seven minutes.
+This uses the same rubric file, reviewer prompt, staging layout and model as
+`.github/workflows/review.yml`, and like CI it fails if the reviewer omits any criterion. It differs
+in authenticating from your token rather than a repository secret. It prints a pass, fail or
+not-applicable line for each of the 35 criteria and the explanation for any failure. Takes about
+five to seven minutes.
 
 ### Running agent trials
 
-The launcher reads the CI defaults from `.github/harbor-run-defaults.yml`, so the agent, model and
-reasoning effort match what TB3 CI uses.
+The launcher hardcodes the agent, model and reasoning effort from `.github/harbor-run-defaults.yml`
+and runs them on the docker backend rather than CI's modal. It does not parse that file, so if CI's
+defaults change the launcher must be updated to match.
 
 ```bash
 tools/trials.sh opus  run 1             # claude-code / claude-opus-5 / effort max
@@ -146,11 +153,11 @@ tools/trials.sh codex run 1             # codex / gpt-5.6-sol / effort xhigh
 tools/trials.sh --parallel 2 opus run   # two isolated trials in one job
 tools/trials.sh opus  cheat 1           # adversarial, must score 0
 tools/trials.sh codex cheat 1
-tools/trials.sh --summary               # one row per trial, reward and cost
+tools/trials.sh --summary             # one row per trial, read from $KLAVIS_JOBS
 tools/trials.sh --dry-run opus cheat    # set a cheat trial up and inspect it, spending nothing
 ```
 
-Each trial takes 45 to 60 minutes. `--parallel 2` runs two at once in a single Harbor job, each with
+Each trial takes 30 to 50 minutes (the six scored trials ran 30 to 49). `--parallel 2` runs two at once in a single Harbor job, each with
 its own environment container and its own verifier, which halves the wall clock. Three concurrent
 trials need more than 8 GB allocated to Docker.
 
@@ -161,8 +168,9 @@ repository before appending `rubrics/hack-trial-prompt.md`, so the repository is
 
 It passes credentials using the flags the assignment documents:
 `--ae CLAUDE_FORCE_OAUTH=1 --ae CLAUDE_CODE_OAUTH_TOKEN=<token>` for Claude Code, and
-`--ae CODEX_FORCE_AUTH_JSON=1` for Codex. It never writes a token to disk, never puts one on a
-command line visible in `ps`, and clears it on exit.
+`--ae CODEX_FORCE_AUTH_JSON=1` for Codex. It never writes a token to disk and never echoes one. It does
+pass the token to harbor as an `--ae` argument, the form the assignment documents, so the token is
+visible in `ps` output while a trial runs. It is unset on exit.
 
 To run a trial by hand instead, without the launcher:
 
@@ -193,9 +201,11 @@ across books, that FIFO and weighted-average cost disagree, that the financing w
 that interest accrues. A change that quietly makes a rule decorative breaks the build instead of
 shipping.
 
-`tools/adversarial/` holds the exploit fixtures used to test the verifier: copying the golden files,
+`tools/adversarial/` holds four exploit fixtures used to test the verifier: copying the golden files,
 hiding memory in a detached orphan, ignoring the seed when minting tokens, and holding the verifier's
-output pipes open from a double-forked grandchild. Each must score 0.
+output pipes open from a double-forked grandchild. The task's own `cheat/reconcile.py` is a fifth: a
+competent implementation whose only error is the merger fold. All five must score 0, and
+`results/checks/automated-checks.txt` records that they do.
 
 After changing the policy, the generator or the reference, rebuild both images before running
 anything, since the period and the golden are baked in at build time:
@@ -213,9 +223,11 @@ docker build -t dpr-tests:latest tasks/desk-position-reconcile/tests
 | [`tasks/desk-position-reconcile/`](tasks/desk-position-reconcile) | The task, with its own README for the author-facing identity model |
 | [`results/`](results) | Trial evidence, rubric verdict, automated check log |
 | [`tools/`](tools) | Trial launcher, rubric review, cross-source checks, adversarial fixtures |
-| [`NOTICE`](NOTICE) | Authorship, license of the contributed work, and the evaluation grant |
+| [`docs/worktrial/`](docs/worktrial) | Working notes and design record kept while building the task |
+| [`NOTICE`](NOTICE) | Authorship, license of the contributed work, and the evaluation terms |
 
-Everything else is upstream terminal-bench.
+Everything outside those paths, and outside the four earlier tasks named above, is upstream
+terminal-bench.
 
 ## License and authorship
 

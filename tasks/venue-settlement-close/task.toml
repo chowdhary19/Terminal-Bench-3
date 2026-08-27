@@ -58,10 +58,9 @@ subcategory = "Finance"
 tags = ["market-microstructure", "exchange-settlement", "reconciliation", "funding-rates", "fee-tiers"]
 expert_time_estimate_hours = 6.0
 relevant_experience = """
-I build and operate a production crypto market-making system: a Rust execution engine with \
-cross-venue hedge routing, spot and perpetual fee-tier accounting, exchange fill ingestion and \
-position reconciliation across venues. Settlement close and the quiet disagreements between an \
-internal ledger and a venue statement are work I do; this task is a reduced version of it.
+Founding engineer and quant developer on a trading desk, now a system architect and AI engineer. \
+I have built cross-venue execution and position reconciliation across venues and clearing accounts, \
+which is the domain this task is drawn from.
 """
 
 [verifier]

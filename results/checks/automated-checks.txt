@@ -1,8 +1,9 @@
-# Automated check results — desk-position-reconcile @ 73e68f5c (docs), task files @ b16a0038
-# Generated 2026-08-26T21:41:37Z
+# Automated check results — desk-position-reconcile
+# Task files at commit b16a0038; log regenerated 2026-08-27T00:50:44Z at fccaebab
 
-## Static checks (checks/*.sh, checks/*.py)
-23 passed, 0 failed
+## Static checks
+  22 shell checks: 22 passed, 0 failed
+  checks/check-ai-detection.py: Warning: GPTZERO_API_KEY not set, skipping AI detection
 
 ## Cross-source reconciliation and leak guards (tools/reconcile-task.py)
   all 167 reconciliation checks passed
@@ -11,13 +12,14 @@
 verifier_env in sync with task sources
 
 ## Oracle validation (harbor 0.18.0, --agent oracle --env docker)
-  1/1 Mean: 1.000 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0:01:52 0:00:00
+  1/1 Mean: 1.000 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0:01:43 0:00:00
 
-## Nop validation (harbor 0.14.0, --agent nop --env docker)
-  1/1 Mean: 0.000 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0:00:34 0:00:00
+## Nop validation (harbor 0.18.0, --agent nop --env docker)
+  1/1 Mean: 0.000 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0:00:31 0:00:00
 
 ## Local adversarial fixtures (each must be reward 0)
-  copy-the-golden-and-write-the-reward         reward: 0
-  hide-700MB-in-a-detached-orphan              reward: 0
-  hold-the-verifier-pipes-open                 reward: 0
-  competent-implementation-that-folds-mergers  reward: 0
+  copy-the-golden-and-write-the-reward           reward: 0
+  hide-700MB-in-a-detached-orphan                reward: 0
+  hold-the-verifier-pipes-open                   reward: 0
+  tokens-that-ignore-the-seed                    reward: 0
+  competent-implementation-that-folds-mergers    reward: 0
