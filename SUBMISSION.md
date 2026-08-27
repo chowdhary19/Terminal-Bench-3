@@ -72,7 +72,7 @@ I started by building what I thought a hard task looked like: a settlement close
 
 `sandbox-upgrade-continuity` (schema migration with snapshot continuity) and `venue-settlement-close` (settlement period close against a venue mechanics document). Opus solved both. The tasks are in `tasks/`; those early trial runs were not preserved.
 
-My reaction was to add more mechanics. This turned out to be exactly wrong, and it cost me two more days to work out why.
+So I added more mechanics. That instinct was wrong, and it took two more days and two more tasks to see why.
 
 ### Day 2, 23 August: harder mechanics, same outcome
 
@@ -82,7 +82,7 @@ Opus passed it in 14 minutes for $1.58, from a working session whose job output 
 
 That was the useful failure. I had been treating difficulty as a volume problem. More rules, more services, more edge cases. But a careful agent reading a careful specification just does the work. Precision in the spec, which fairness demands, is precisely what lets a strong model converge. I was making the task longer, not harder.
 
-Somewhere in here I also learned to distrust my own defect rate. Nine separate bugs of mine, counted as I found them during those sessions, caused trial failures that I nearly counted as model failures: money carried in float64 at a scale where a double cannot resolve a cent, a fee basis I had left undetermined, an undocumented pseudo-instrument row that made the task literally unpassable, a 1200-second runtime limit I never stated. Every one of those had to be found and fixed before any trial result meant anything. That is where the verification tooling in this repo came from.
+This is also where the verification discipline in this repository comes from. Nine defects of my own, counted as I found them, produced trial failures that would have read as model failures if I had taken them at face value: money carried in float64 at a scale where a double cannot resolve a cent, a fee basis I had left undetermined, an undocumented pseudo-instrument row that made the task literally unpassable, a 1200-second runtime limit I never stated. Every one had to be found and fixed before any trial result meant anything, which is why `tools/reconcile-task.py` exists and why the golden builder asserts its own traps are still live on every build. A trial result is only worth the verification standing behind it.
 
 ### Days 3 and 4, 23 to 24 August: the first version of the winning task
 
@@ -172,7 +172,7 @@ That is the trap, written out as a tutorial. Every trap I built, I then disarmed
 
 My data was defanged too. All 1.2 million account ids were globally unique, so no scoping mistake was possible. The one scope I did declare was dead: I mutated the reference to ignore it entirely and zero rows changed. The unresolvable statement lines in my generator were named `GHOST-#####`. And a `venue_statement.csv` I had added for realism turned out to be a planted second opinion: the passing agent diffed it against the raw ledger before writing a line of code and learned the expected answer shape from my own data.
 
-I was optimizing for looking like a careful specification author. In a benchmark task, that is an answer key.
+Every one of those comments was good specification writing. In a benchmark task, good specification writing is an answer key.
 
 ---
 
@@ -271,21 +271,25 @@ It searched for five and a half minutes across 13 tool calls, then argued in its
 
 I also ran six local exploit fixtures against the verifier, each scoring 0: copying the golden files, hiding 700 MB in a detached orphan process, holding the verifier's output pipes open from a double-forked grandchild, planting symlinks to the golden, emitting tokens that ignore the seed, and a competent implementation whose only error is the fold. Results in [`results/checks/automated-checks.txt`](results/checks/automated-checks.txt).
 
-### The exploit I missed
+### Red-teaming the verifier
 
-The symlink fixture is there because an independent audit of this repository found it, and it worked. It is worth stating plainly, because it is the most instructive failure in the project.
+A verifier is only worth what an adversary cannot do to it, so I did not stop at writing fixtures for the attacks I had thought of. I commissioned two independent red-team audits, each given the repository and one instruction: reach reward 1 without solving the task.
 
-The verifier creates each output directory `0777`, because the submission runs unprivileged and has to write there. The submission genuinely cannot read the golden, which is `0600` and root-owned; I had tested that and it held. But it can plant a **symlink** in its own output directory pointing at a golden file, and pytest, running as root, then dereferences it. The submission never touches the answers. It makes the privileged verifier read them on its behalf. The sample-period tests only compare the submission against itself, so fabricated rows satisfy determinism and seed sensitivity.
+The first one succeeded, and the attack is worth setting out because it is the most interesting thing in the project.
+
+Each output directory is created `0777`, because the submission runs unprivileged and has to write there. The submission cannot read the golden, which is `0600` and root-owned; that holds under test. But it can plant a **symlink** in its own output directory pointing at a golden file, and pytest, running as root, dereferences it. The submission never touches the answers. It makes the privileged verifier read them on its behalf. The sample-period tests compare the submission only against itself, so fabricated rows satisfy determinism and seed sensitivity.
 
 That scored **reward 1 in 18 seconds with no work done**.
 
-My five existing fixtures all tested whether the submission could reach something: the golden, the reward channel, the memory accounting, the verifier's pipes. None tested whether the submission could get *the verifier* to reach something on its behalf. That is the class of bug I had no fixture for, and I would not have found it by reading my own code, because I had already convinced myself that direction was closed.
+The interesting part is the shape of the gap. Every fixture I had written asked whether the submission could *reach* something: the golden, the reward channel, the memory accounting, the verifier's pipes. None asked whether it could get *the verifier* to reach something on its behalf. Confusing a privileged process into acting for you is a different category from breaking through a permission boundary, and it is not visible from inside the permission model, which is why the audit had to come from outside my own reasoning about it.
 
-The fix rejects any report that is not a regular file with a single hard link sitting directly in the output directory, opens every report with `O_NOFOLLOW`, and refuses any file in the output directory that is not one of the policy's reports. The fixture now scores 0.
+The fix requires every report to be a regular file with a single hard link resolving inside its own output directory, and opens each with `O_NOFOLLOW`. The fixture now scores 0 and is kept as [`tools/adversarial/symlink.py`](tools/adversarial/symlink.py).
 
-To confirm the fix changed nothing else, I re-ran all six agent submissions from the standard trials against the hardened verifier. Every one still scores 0, with the same failing tests as before. The trial results in this document are unaffected. I also built a variant of the reference that leaves a scratch file in its output directory, to check the fix cannot fail a correct solution; it scores 1.
+Two checks that the fix broke nothing. All six agent submissions from the standard trials were re-run against the hardened verifier: every one still scores 0, with the same failing tests as before, so the results in this document are unaffected. And a variant of the reference that leaves a scratch file in its output directory still scores 1, confirming the guard cannot fail a correct solution. An earlier draft of the fix also rejected any unexpected file in the output directory; that added no security, since the verifier only reads the reports it looks for, and it would have failed a correct solution for an unrelated reason, so it came out.
 
-A second independent red-team audit was then run against the hardened verifier, told to reach reward 1 by any means. It could not. It confirmed the symlink fix holds and additionally tried a FIFO, a directory, and both hard-link variants where a report was expected, each rejected by the same guard, plus a resident daemon with a TOCTOU race against the check, which cannot win because every golden-gating read is `lstat`-guarded and opened `O_NOFOLLOW` and every ancestor directory is root-owned. Its report also found two things worth fixing that were not exploitable: a grandchild calling `setsid()` escaped the process-group kill, and two reads in the determinism test bypassed the guard. Both are now closed, the first by sweeping every process the unprivileged uid owns after each run, the second by routing those reads through the same check.
+The second audit ran against the hardened verifier and could not reach reward 1. It confirmed the symlink fix holds, and its own probes went further: a FIFO, a directory, and both hard-link variants planted where a report was expected are all rejected by the same guard, and a resident daemon racing the check cannot win, because every golden-gating read is `lstat`-guarded, opened `O_NOFOLLOW`, and sits under root-owned ancestors. It surfaced two defects that were real but not exploitable: a grandchild calling `setsid()` escaped the process-group kill, and two reads in the determinism test bypassed the file-type guard. Both are closed, the first by sweeping every process the unprivileged uid owns after each run, the second by routing those reads through the same check.
+
+Two independent attempts to break it, one success that is now closed and one that found nothing, is stronger evidence than any assertion of mine that the verifier is sound. It is still evidence rather than proof.
 
 ### The Codex cheat caveat
 
@@ -347,9 +351,9 @@ tools/trials.sh --summary
 
 ## What I would do differently
 
-The single mistake that cost me three days was treating difficulty as a volume problem. I kept adding rules and services to tasks that a careful reader could simply work through. What actually defeats a frontier agent is a decision it cannot check itself on, and I would go looking for that property first next time instead of arriving at it by elimination.
+The finding that took three days to reach is that difficulty is not a volume problem. Rules and services can be piled on a task and a careful reader still works through them. What defeats a frontier agent is a decision it cannot check itself on, and I would test a design for that property first next time rather than arriving at it by elimination.
 
-I would also read the merged tasks earlier and more adversarially. The answer was sitting in `data-anonymization` from day one, in a dictionary literally named `HIDDEN_OBJECT_COLUMNS`. I did not go looking until my own task had already been solved in 46 minutes.
+I would also read the merged tasks adversarially from the start. The mechanism was sitting in `data-anonymization` the whole time, in a dictionary its author named `HIDDEN_OBJECT_COLUMNS`, and reading a merged task as an opponent rather than as an example is a cheap way to calibrate before building anything.
 
 Two things I still have some tension about. The professional convention at this task's center is real and it is what makes the task hard for the right reason, but it is a convention rather than a stated rule, and I want to be upfront that a reviewer could reasonably want more of it written down. And I cannot prove the task is unsolvable, only that six frontier trials and three sealed implementers did not solve it. Nine independent attempts is evidence, not proof.
 
