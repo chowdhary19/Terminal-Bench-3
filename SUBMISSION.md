@@ -1,6 +1,6 @@
 # Terminal-Bench 3 task submission
 
-**Yuvraj Singh Chowdhary** · System architect and AI engineer, founding engineer at Synvolv. Previously founding engineer and quant developer at Blockhouse.
+**Yuvraj Singh Chowdhary** · System architect and AI engineer, founding engineer at Synvolv, founding quant developer at Blockhouse.
 
 This document is the whole story: what I submitted, what it does to frontier agents, and the four days of failed attempts that taught me how to build it. If you only read one section, read [The result](#the-result) and [What I learned about where agents fail](#what-i-learned-about-where-agents-fail).
 
