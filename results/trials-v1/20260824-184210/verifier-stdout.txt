@@ -1,0 +1,74 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.5.2
+collected 6 items
+
+tests/test_outputs.py .FF...                                             [100%]
+
+=================================== FAILURES ===================================
+__________________________ test_every_report_matches ___________________________
+
+runs = {'main': RunResult(returncode=0, peak_rss_bytes=103948288, seconds=13.267187007004395, stdout='', stderr='', outdir=Po...e=0, peak_rss_bytes=29356032, seconds=0.4597959580132738, stdout='', stderr='', outdir=PosixPath('/tmp/verify/det_b'))}
+
+    def test_every_report_matches(runs):
+        """Every report the policy defines, compared exactly."""
+        problems = []
+        for name, (cols, k) in REPORTS.items():
+            got = read_csv(runs["main"].outdir / name, cols)
+            want = read_csv(MAIN / "golden" / name, cols)
+            assert len(got) == len({tuple(r[:k]) for r in got}), (
+                f"{name} repeats its grain key; each {cols[:k]} must appear once")
+            gd = {tuple(r[:k]): tuple(r[k:]) for r in got}
+            wd = {tuple(r[:k]): tuple(r[k:]) for r in want}
+            missing, extra = set(wd) - set(gd), set(gd) - set(wd)
+            if missing:
+                problems.append(f"{name}: {len(missing)} rows missing, first {sorted(missing)[0]}")
+            if extra:
+                problems.append(f"{name}: {len(extra)} rows that should not exist, first {sorted(extra)[0]}")
+            bad = [x for x in wd if x in gd and gd[x] != wd[x]]
+            if bad:
+                x = sorted(bad)[0]
+                problems.append(f"{name}: {len(bad)} rows disagree, first {x} reported "
+                                f"{gd[x]}, should be {wd[x]}")
+>       assert not problems, "; ".join(problems[:4])
+E       AssertionError: attribution.csv: 126446 rows disagree, first ('F000000007',) reported ('ACC0000028', 'BTC-PERP', 'LEI000683', '127030497.62'), should be ('ACC0079015', 'BTC-PERP', 'LEI000683', '127030497.62'); positions.csv: 12770 rows missing, first ('2026-04-01', 'ACC0011136', 'ARB-USDT'); positions.csv: 6950 rows that should not exist, first ('2026-04-01', 'ACC0000067', 'ARB-USDT'); positions.csv: 4010 rows disagree, first ('2026-04-01', 'ACC0000004', 'ARB-USDT') reported ('2048', '459582'), should be ('-3673', '437465')
+E       assert not ["attribution.csv: 126446 rows disagree, first ('F000000007',) reported ('ACC0000028', 'BTC-PERP', 'LEI000683', '12703...CC0011136', 'ALTAIR')", "fees.csv: 1931 rows that should not exist, first ('2026-04-01', 'ACC0000067', 'ALTAIR')", ...]
+
+tests/test_outputs.py:177: AssertionError
+________________ test_dimensions_not_yet_changed_stay_distinct _________________
+
+runs = {'main': RunResult(returncode=0, peak_rss_bytes=103948288, seconds=13.267187007004395, stdout='', stderr='', outdir=Po...e=0, peak_rss_bytes=29356032, seconds=0.4597959580132738, stdout='', stderr='', outdir=PosixPath('/tmp/verify/det_b'))}
+
+    def test_dimensions_not_yet_changed_stay_distinct(runs):
+        """A rollup, rename or reassignment that had not happened yet is not applied.
+    
+        This is the previous test restricted to the fills whose account, instrument or
+        counterparty had not yet changed on the day they traded, and it is called out
+        separately because it is the case a resolution that reads the effective dates
+        and does not apply them gets wrong while looking correct everywhere else.
+        """
+        got = {r[0]: (r[1], r[2], r[3])
+               for r in read_csv(runs["main"].outdir / "attribution.csv", ATTR_COLS)}
+        pre = read_csv(MAIN / "golden" / "pre_rollup_fills.csv",
+                       ["fill_id", "account", "instrument", "counterparty"])
+        assert pre, "the period contains no fills that predate a change to their dimensions"
+        wrong = [(r[0], got.get(r[0]), tuple(r[1:])) for r in pre if got.get(r[0]) != tuple(r[1:])]
+>       assert not wrong, (
+            f"{len(wrong)} of {len(pre)} fills whose account, instrument or counterparty had not "
+            f"yet changed on their trade date are reported under the later value anyway, first: "
+            f"fill {wrong[0][0]} reported {wrong[0][1]}, should be {wrong[0][2]}")
+E       AssertionError: 48622 of 585375 fills whose account, instrument or counterparty had not yet changed on their trade date are reported under the later value anyway, first: fill F000000007 reported ('ACC0000028', 'BTC-PERP', 'LEI000683'), should be ('ACC0079015', 'BTC-PERP', 'LEI000683')
+E       assert not [('F000000007', ('ACC0000028', 'BTC-PERP', 'LEI000683'), ('ACC0079015', 'BTC-PERP', 'LEI000683')), ('F000000027', ('AC..., 'LEI001868')), ('F000000068', ('ACC0000089', 'ETH-PERP', 'LEI001825'), ('ACC0905659', 'ETH-PERP', 'LEI001825')), ...]
+
+tests/test_outputs.py:194: AssertionError
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED tests/test_outputs.py::test_every_fill_is_attributed
+PASSED tests/test_outputs.py::test_reports_are_sorted_as_the_policy_requires
+PASSED tests/test_outputs.py::test_peak_memory_within_cap
+PASSED tests/test_outputs.py::test_repeat_run_is_identical
+FAILED tests/test_outputs.py::test_every_report_matches - AssertionError: att...
+FAILED tests/test_outputs.py::test_dimensions_not_yet_changed_stay_distinct
+========================= 2 failed, 4 passed in 26.32s =========================
+reward: 0

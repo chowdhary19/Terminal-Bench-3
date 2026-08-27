@@ -12,8 +12,8 @@ The trials span three commits that differ only in documentation and in one verif
 `opus-run-2` and `opus-run-3` at `51b32712`, `opus-run-1` at `7b0e762d`, and the three Codex runs and
 both cheat runs at `b16a0038`. Every agent-facing file, the graded assertions and the reference are
 byte-identical across all three. The checks and the rubric verdict were produced at `b16a0038` or
-later. The one trial marked `v1-` is kept deliberately: it is the earlier version of the task being
-solved, and the reason the task was rebuilt.
+later. The eleven trials in `trials-v1/` ran against the earlier version of the task, between 23 and 25
+August, while it was still being iterated.
 
 ## What is here
 
@@ -26,6 +26,10 @@ adversarial fixtures.
 prompt and model as `.github/workflows/review.yml`. All 35 criteria clear with zero failures: 33
 pass and 2 not applicable (`artifact_efficiency`, `do_not_modify_enforced`). The CI gate fails only
 on a `fail` outcome, so this is a pass.
+
+`trials-v1/` holds all eleven Opus trials against the earlier version of the task, which it passed
+eight times out of eleven. That record is why the task was rebuilt, and it is the before to the
+six-for-six after.
 
 `implementer-probe/` holds the three sealed Opus implementations run as a fairness check before any
 real trial was spent, with the grade for each. All three failed, on two different traps.
@@ -51,7 +55,6 @@ manifest, and an exception trace where one exists.
 | `codex-run-voided-auth-1` | codex | run | void | no |
 | `codex-run-voided-auth-2` | codex | run | void | no |
 | `opus-run-voided-1` | claude-code | run | void | no |
-| `v1-opus-run-passed-1` | claude-code, opus-5, max | run | 1.000 | earlier task version |
 
 The six scored `run` trials all terminated with `end_turn`, zero harness exceptions, and unspent
 budget. Their `verifier-stdout.txt` files show which tests failed and the exact row counts.

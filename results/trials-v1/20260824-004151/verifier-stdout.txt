@@ -1,0 +1,46 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.15, pytest-9.1.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.5.2
+collected 5 items
+
+tests/test_outputs.py .F...                                              [100%]
+
+=================================== FAILURES ===================================
+__________________________ test_every_report_matches ___________________________
+
+runs = {'main': RunResult(returncode=0, peak_rss_bytes=88178688, seconds=19.37400667599286, stdout='attribution.csv     90000...s\nexposure.csv         50658 rows\npeak rss 22.9 MB of 192.0 MB\n', stderr='', outdir=PosixPath('/tmp/verify/det_b'))}
+
+    def test_every_report_matches(runs):
+        """Every report the policy defines, compared exactly."""
+        problems = []
+        for name, cols in REPORTS.items():
+            got = read_csv(runs["main"].outdir / name, cols)
+            want = read_csv(MAIN / "golden" / name, cols)
+            k = len(cols) - (1 if name == "attribution.csv" else 2)
+            gd = {tuple(r[:k]): tuple(r[k:]) for r in got}
+            wd = {tuple(r[:k]): tuple(r[k:]) for r in want}
+            missing, extra = set(wd) - set(gd), set(gd) - set(wd)
+            if missing:
+                problems.append(f"{name}: {len(missing)} rows missing, first {sorted(missing)[0]}")
+            if extra:
+                problems.append(f"{name}: {len(extra)} rows that should not exist, first {sorted(extra)[0]}")
+            bad = [x for x in wd if x in gd and gd[x] != wd[x]]
+            if bad:
+                x = sorted(bad)[0]
+                problems.append(f"{name}: {len(bad)} rows disagree, first {x} reported "
+                                f"{gd[x]}, should be {wd[x]}")
+>       assert not problems, "; ".join(problems[:4])
+E       AssertionError: fees.csv: 1002433 rows disagree, first ('2026-04-01', 'ACC0000001') reported ('ALTAIR', '295116.42'), should be ('ALTAIR', '294603.07'); exposure.csv: 460514 rows disagree, first ('2026-04-01', 'ACC0000003') reported ('BTC', '-324790087338560.19'), should be ('BTC', '-324790087338560.10')
+E       assert not ["fees.csv: 1002433 rows disagree, first ('2026-04-01', 'ACC0000001') reported ('ALTAIR', '295116.42'), should be ('AL... first ('2026-04-01', 'ACC0000003') reported ('BTC', '-324790087338560.19'), should be ('BTC', '-324790087338560.10')"]
+
+tests/test_outputs.py:164: AssertionError
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED tests/test_outputs.py::test_every_fill_is_attributed
+PASSED tests/test_outputs.py::test_dimensions_not_yet_changed_stay_distinct
+PASSED tests/test_outputs.py::test_peak_memory_within_cap
+PASSED tests/test_outputs.py::test_repeat_run_is_identical
+FAILED tests/test_outputs.py::test_every_report_matches - AssertionError: fee...
+========================= 1 failed, 4 passed in 59.38s =========================
+reward: 0

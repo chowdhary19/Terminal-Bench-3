@@ -30,7 +30,7 @@ Six standard trials, six genuine failures. Every one terminated normally with `e
 
 All raw evidence is in [`results/`](results): per-trial verifier output, job manifests, the rubric verdict file, and the automated check log.
 
-For context on the bar: the previous version of this same task was solved by Opus in 46 minutes on its first attempt, and passed four of five trials. The rebuild is what took it to zero.
+For context on the bar: the previous version of this same task was solved by Opus on its first attempt, and passed **eight of eleven** trials while I iterated on it. All eleven are in [`results/trials-v1/`](results/trials-v1). The rebuild is what took it to zero.
 
 ---
 
@@ -64,35 +64,37 @@ And it is verifiable to the cent, which brings me back to the first reason. Ever
 
 ## The five days
 
-### Day 1: two tasks, two passes
+Dates are from the git history, so the account below can be checked against it. Where a claim rests on a working session rather than a preserved artifact, I say so at that point.
+
+### Day 1, 22 August: two tasks, two passes
 
 I started by building what I thought a hard task looked like: a settlement close with genuinely fiddly mechanics. Fee tiers, funding accruals, rounding rules, event ordering at equal timestamps.
 
-`sandbox-upgrade-continuity` (schema migration with snapshot continuity) and `venue-settlement-close` (settlement period close against a venue mechanics document). Opus solved both. Not slowly, either.
+`sandbox-upgrade-continuity` (schema migration with snapshot continuity) and `venue-settlement-close` (settlement period close against a venue mechanics document). Opus solved both. The tasks are in `tasks/`; those early trial runs were not preserved.
 
 My reaction was to add more mechanics. This turned out to be exactly wrong, and it cost me two more days to work out why.
 
-### Day 2: harder mechanics, same outcome
+### Day 2, 23 August: harder mechanics, same outcome
 
 `settlement-stream-close` and `venue-gateway-cutover` followed. The second was a four-service compose environment: a venue book served over HTTP, a ledger service, a main box, and a reconciliation the agent had to write against all three. Richer environment, more moving parts, more places to be wrong.
 
-Opus passed it in 14 minutes for $1.58.
+Opus passed it in 14 minutes for $1.58, from a working session whose job output is not preserved here.
 
 That was the useful failure. I had been treating difficulty as a volume problem. More rules, more services, more edge cases. But a careful agent reading a careful specification just does the work. Precision in the spec, which fairness demands, is precisely what lets a strong model converge. I was making the task longer, not harder.
 
-Somewhere in here I also learned to distrust my own defect rate. Nine separate bugs of mine caused trial failures that I nearly counted as model failures: money carried in float64 at a scale where a double cannot resolve a cent, a fee basis I had left undetermined, an undocumented pseudo-instrument row that made the task literally unpassable, a 1200-second runtime limit I never stated. Every one of those had to be found and fixed before any trial result meant anything. That is where the verification tooling in this repo came from.
+Somewhere in here I also learned to distrust my own defect rate. Nine separate bugs of mine, counted as I found them during those sessions, caused trial failures that I nearly counted as model failures: money carried in float64 at a scale where a double cannot resolve a cent, a fee basis I had left undetermined, an undocumented pseudo-instrument row that made the task literally unpassable, a 1200-second runtime limit I never stated. Every one of those had to be found and fixed before any trial result meant anything. That is where the verification tooling in this repo came from.
 
-### Day 3: the first version of the winning task
+### Days 3 and 4, 23 to 24 August: the first version of the winning task
 
-`desk-position-reconcile` began as a single observed failure. In one earlier trial Opus had folded a dated relation into an undated one, and I built a task around forcing that choice.
+`desk-position-reconcile` began late on 23 August, out of a single observed failure. In one earlier trial Opus had folded a dated relation into an undated one, and I built a task around forcing that choice.
 
 The design: eleven reports, seven kinds of computation, an identity graph larger than the memory budget, and two relations over clearing accounts. Account rollups that are directional and take effect on a date. Entity links that are symmetric, undated, and compose. Fold them together and you relabel accounts on dates when only a later rollup joined them.
 
-I measured the trap carefully. Folding moved 19 percent of graded rows. I ran six independent implementers against the spec and two of them folded, which put the expected failure rate somewhere around one in three. The trials came in at one in five. (Those six implementations were not preserved; the three from the rebuild are, in `results/implementer-probe/`.)
+I measured the trap carefully. Folding moved 19 percent of graded rows, and of six independent implementers run against the spec, two folded. That suggested a failure rate around one in three. The trials came in far worse than that: three failures in eleven, and Opus solved the task on the very first attempt. (Those six implementations were from a working session and are not preserved; the three from the rebuild are, in `results/implementer-probe/`.)
 
-### Day 4: solved in 46 minutes, and the audit that followed
+### Day 4, 25 August: solved in 46 minutes, and the audit that followed
 
-Opus's record on that version: one failure, four passes. The failure was real and the trap fired exactly as designed. But one failure in five is not three in three, and the assignment needs three in three.
+Opus's record on that version, across every trial I ran while iterating it: **eleven trials, eight passes, three failures**. All eleven are preserved in [`results/trials-v1/`](results/trials-v1). The failures were real and the trap fired as designed on the 24 August 18:42 run, which cost $16.90 and folded exactly as predicted. But eight passes in eleven is not zero in six, and the assignment needs every trial to fail.
 
 The 46-minute pass is the one I learned from. I pulled the full trajectory off disk and read it. The identity resolution it wrote was three lines (transcribed from the trajectory, which is not preserved here):
 
@@ -108,7 +110,7 @@ So I ran a twelve-agent audit comparing my task end to end against `data-anonymi
 
 The finding was not what I expected, and it is the single most important thing in this submission.
 
-### Day 5: the rebuild, and 6 for 6
+### Days 4 and 5, 25 to 26 August: the rebuild, and 6 for 6
 
 I rewrote the task on what the audit found, ran three sealed implementers against it as a fairness check, then ran the full trial matrix. Six standard trials, six failures. Rubric clear after three review cycles that caught real defects in my verifier: zero failures across all 35 criteria, 33 pass and 2 not applicable (`artifact_efficiency`, `do_not_modify_enforced`). The CI gate fails only on a `fail` outcome, so this passes it.
 
@@ -342,7 +344,7 @@ Two things I still have some tension about. The professional convention at this 
 | Path | What is there |
 |---|---|
 | [`tasks/desk-position-reconcile/`](tasks/desk-position-reconcile) | The task. Its own README carries the author-facing identity model. |
-| [`results/`](results) | Trial evidence, the sealed implementer probe, the rubric verdict, the check log. |
+| [`results/`](results) | Trial evidence for both versions, the sealed implementer probe, the rubric verdict, the check log. |
 | [`tools/reconcile-task.py`](tools/reconcile-task.py) | 167 cross-source checks plus the leak guards. |
 | [`tools/trials.sh`](tools/trials.sh) | Trial launcher reproducing the CI defaults. |
 | [`tools/rubric-review.sh`](tools/rubric-review.sh) | The 35-criterion review, run as CI runs it. |
