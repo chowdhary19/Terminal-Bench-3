@@ -18,6 +18,7 @@ import ctypes
 import os
 import re
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -168,9 +169,31 @@ def run_tool(inputs: Path, outdir: Path, seed: int, timeout_s: int) -> RunResult
     return RunResult(proc.returncode, holder["peak"], time.monotonic() - started, out, err, outdir)
 
 
-def read_csv(path: Path, cols: list[str]) -> list[list[str]]:
+def assert_is_own_output(path: Path, outdir: Path) -> None:
+    """The submission's report must be a regular file it wrote itself.
+
+    The output directory is writable by the unprivileged submission and this
+    verifier runs as root, so a symlink planted there would be dereferenced with
+    root's privileges and could name a file the submission cannot read. A report
+    is therefore required to be a regular file, not a link of any kind, sitting
+    directly in the output directory.
+    """
+    st = os.lstat(path)
+    assert stat.S_ISREG(st.st_mode), (
+        f"{path.name} is not a regular file (mode {stat.S_IFMT(st.st_mode):#o}); "
+        "a report must be written, not linked")
+    assert st.st_nlink == 1, (
+        f"{path.name} has {st.st_nlink} hard links; a report must be a file the "
+        "reconciliation wrote, not a second name for an existing one")
+    assert path.resolve().parent == outdir.resolve(), (
+        f"{path.name} resolves outside the output directory, to {path.resolve()}")
+
+
+def read_csv(path: Path, cols: list[str], outdir: Path | None = None) -> list[list[str]]:
     assert path.exists(), f"the reconciliation did not write {path.name}"
-    with path.open(newline="") as f:
+    assert_is_own_output(path, outdir if outdir is not None else path.parent)
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    with os.fdopen(fd, newline="") as f:
         rd = csv.reader(f)
         try:
             header = next(rd)
@@ -193,6 +216,17 @@ def runs() -> dict[str, RunResult]:
         assert res.returncode == 0, (
             f"the reconciliation exited {res.returncode} on the {name} run\n"
             f"stdout: {res.stdout[-2000:]}\nstderr: {res.stderr[-2000:]}")
+    # Every report must be a regular file the run wrote into its own output
+    # directory. Anything else is rejected before a single value is compared.
+    for name, res in r.items():
+        for report in REPORTS:
+            fp = res.outdir / report
+            assert fp.exists(), f"the {name} run did not write {report}"
+            assert_is_own_output(fp, res.outdir)
+        for extra in res.outdir.iterdir():
+            assert extra.name in REPORTS, (
+                f"the {name} run left {extra.name} in the output directory; only the "
+                f"policy's reports belong there")
     return r
 
 

@@ -23,3 +23,20 @@ verifier_env in sync with task sources
   hold-the-verifier-pipes-open                   reward: 0
   tokens-that-ignore-the-seed                    reward: 0
   competent-implementation-that-folds-mergers    reward: 0
+
+## Local adversarial fixtures (each must be reward 0), re-run 2026-08-27T03:13Z
+  copy-the-golden-and-write-the-reward           reward: 0
+  hide-700MB-in-a-detached-orphan                reward: 0
+  hold-the-verifier-pipes-open                   reward: 0
+  plant-symlinks-to-the-golden                   reward: 0
+  tokens-that-ignore-the-seed                    reward: 0
+  competent-implementation-that-folds-mergers    reward: 0
+
+## The six standard trial submissions, re-run against the hardened verifier
+   (proving the trial results are unaffected by the symlink fix)
+  opus-run-1                                     reward: 0
+  opus-run-2                                     reward: 0
+  opus-run-3                                     reward: 0
+  codex-run-1                                    reward: 0
+  codex-run-2                                    reward: 0
+  codex-run-3                                    reward: 0

@@ -27,7 +27,9 @@ not derived from upstream terminal-bench material:
   tools/check-sync.sh                verifier source drift guard
   tools/grade-implementer.py         implementer probe grader
   tools/trial-summary.py             trial result reader
-  tools/adversarial/                 verifier exploit fixtures
+  tools/adversarial/                 verifier exploit fixtures (the symlink fixture
+                                     was contributed by an independent audit and is
+                                     kept with that noted in its docstring)
   tasks/sandbox-upgrade-continuity/  four earlier tasks of mine, kept as the
   tasks/venue-settlement-close/      record of how the submitted task was
   tasks/settlement-stream-close/     arrived at

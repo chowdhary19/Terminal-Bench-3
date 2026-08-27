@@ -30,7 +30,7 @@ August, while it was still being iterated.
 ## What is here
 
 `checks/automated-checks.txt` is the full log of the static checks, the 167 cross-source and leak
-guard checks, the verifier sync check, oracle validation, nop validation, and the five local
+guard checks, the verifier sync check, oracle validation, nop validation, and the six local
 adversarial fixtures.
 
 `rubric/verdicts.json` is the reviewer's verdict on all 35 criteria of
@@ -83,9 +83,9 @@ with a cybersecurity policy refusal, reproducibly, about four minutes in, with z
 errors. The agent never reached the verifier. `exception.txt` in each directory carries the trace.
 
 The anti-exploit evidence is `opus-cheat-1`, where the agent searched and then argued in its own
-report that no bypass exists, together with the five local fixtures, which are actual falsification
+report that no bypass exists, together with the six local fixtures, which are actual falsification
 attempts rather than an agent's opinion. Its reconnaissance and that report are in
-`trials/opus-cheat-1/agent-final-report.txt`. The five local exploit fixtures are recorded in
+`trials/opus-cheat-1/agent-final-report.txt`. The six local exploit fixtures are recorded in
 `checks/automated-checks.txt`.
 
 ## Reproducing
