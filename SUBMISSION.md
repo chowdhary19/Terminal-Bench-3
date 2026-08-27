@@ -283,7 +283,9 @@ My five existing fixtures all tested whether the submission could reach somethin
 
 The fix rejects any report that is not a regular file with a single hard link sitting directly in the output directory, opens every report with `O_NOFOLLOW`, and refuses any file in the output directory that is not one of the policy's reports. The fixture now scores 0.
 
-To confirm the fix changed nothing else, I re-ran all six agent submissions from the standard trials against the hardened verifier. Every one still scores 0, with the same number of failing tests and the same failing tests as before. The trial results in this document are unaffected.
+To confirm the fix changed nothing else, I re-ran all six agent submissions from the standard trials against the hardened verifier. Every one still scores 0, with the same failing tests as before. The trial results in this document are unaffected. I also built a variant of the reference that leaves a scratch file in its output directory, to check the fix cannot fail a correct solution; it scores 1.
+
+A second independent red-team audit was then run against the hardened verifier, told to reach reward 1 by any means. It could not. It confirmed the symlink fix holds and additionally tried a FIFO, a directory, and both hard-link variants where a report was expected, each rejected by the same guard, plus a resident daemon with a TOCTOU race against the check, which cannot win because every golden-gating read is `lstat`-guarded and opened `O_NOFOLLOW` and every ancestor directory is root-owned. Its report also found two things worth fixing that were not exploitable: a grandchild calling `setsid()` escaped the process-group kill, and two reads in the determinism test bypassed the guard. Both are now closed, the first by sweeping every process the unprivileged uid owns after each run, the second by routing those reads through the same check.
 
 ### The Codex cheat caveat
 

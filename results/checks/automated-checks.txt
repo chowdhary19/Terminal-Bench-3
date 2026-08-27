@@ -40,3 +40,28 @@ verifier_env in sync with task sources
   codex-run-1                                    reward: 0
   codex-run-2                                    reward: 0
   codex-run-3                                    reward: 0
+
+## Final verification 2026-08-27T04:02Z, after two independent red-team audits
+   Mitigations: reports must be regular files with one hard link inside their own
+   output directory, opened O_NOFOLLOW; the run's whole session plus every process
+   the unprivileged uid owns is killed after each run.
+
+   Legitimate solutions (must be 1)
+     the reference                                reward: 1
+     the reference leaving a scratch file behind  reward: 1
+
+   Adversarial fixtures (each must be 0)
+     copy-the-golden-and-write-the-reward         reward: 0
+     hide-700MB-in-a-detached-orphan              reward: 0
+     hold-the-verifier-pipes-open                 reward: 0
+     plant-symlinks-to-the-golden                 reward: 0
+     tokens-that-ignore-the-seed                  reward: 0
+     competent-implementation-that-folds-mergers  reward: 0
+
+   The six trial submissions, re-run (each must be 0, same failing tests)
+     opus-run-1                                   reward: 0
+     opus-run-2                                   reward: 0
+     opus-run-3                                   reward: 0
+     codex-run-1                                  reward: 0
+     codex-run-2                                  reward: 0
+     codex-run-3                                  reward: 0

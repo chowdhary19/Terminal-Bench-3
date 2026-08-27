@@ -145,9 +145,27 @@ def run_tool(inputs: Path, outdir: Path, seed: int, timeout_s: int) -> RunResult
             t.start()
 
             def kill_session():
+                """Kill the run and anything it left behind.
+
+                killpg reaches the run's own session, but a grandchild that
+                calls setsid() forms a new one and would survive it, so every
+                process the unprivileged uid owns is swept as well. Nothing
+                else in this image runs as that uid.
+                """
                 try:
                     os.killpg(proc.pid, signal.SIGKILL)
                 except (ProcessLookupError, PermissionError):
+                    pass
+                try:
+                    import pwd
+                    nobody_uid = pwd.getpwnam("nobody").pw_uid
+                    for q in psutil.process_iter(["uids"]):
+                        if q.info["uids"] and q.info["uids"].real == nobody_uid:
+                            try:
+                                q.kill()
+                            except psutil.Error:
+                                pass
+                except psutil.Error:
                     pass
 
             timed_out = False
@@ -344,8 +362,11 @@ def test_every_report_matches(runs):
 
 def test_repeat_run_is_identical(runs):
     for name in REPORTS:
-        a = (runs["det_a"].outdir / name).read_text().replace("\r\n", "\n")
-        b = (runs["det_b"].outdir / name).read_text().replace("\r\n", "\n")
+        pa, pb = runs["det_a"].outdir / name, runs["det_b"].outdir / name
+        assert_is_own_output(pa, runs["det_a"].outdir)
+        assert_is_own_output(pb, runs["det_b"].outdir)
+        a = os.fdopen(os.open(pa, os.O_RDONLY | os.O_NOFOLLOW)).read().replace("\r\n", "\n")
+        b = os.fdopen(os.open(pb, os.O_RDONLY | os.O_NOFOLLOW)).read().replace("\r\n", "\n")
         assert a == b, f"{name} differed between two runs over the same period with the same seed"
 
 
