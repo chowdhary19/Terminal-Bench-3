@@ -252,7 +252,7 @@ Every trial below terminated with `end_turn` and zero harness exceptions. Raw ve
 
 Three distinct failure signatures across two model families.
 
-Every one of these submissions passed the schema test, the token format test, the determinism test, the seed sensitivity test, and the memory cap. They were complete, well-engineered programs, several of them leaner on memory than my own reference. What failed was one interpretive choice each, invisible from where they stood.
+Every one of these submissions passed the schema test, the token format test, the determinism test, the seed sensitivity test, and the memory cap. They were complete, well-engineered programs that came in under the memory ceiling. What failed was one interpretive choice each, invisible from where they stood.
 
 The Codex near miss is the one I find most instructive. It got the merger convention right, which is the trap that took three of the other five trials, and lost on 168 rows out of 243,940 because of merger records whose venue handle needed resolving at the merger's own date. Exact grading does not care how close you were.
 
@@ -289,13 +289,13 @@ So: the recorded reward satisfies the requirement, and the substantive anti-expl
 
 ### Voided runs, excluded
 
-Three runs are excluded as execution failures, per the brief. Two Codex runs died at 401 Unauthorized because a `codex login` on the host does not reach the container (fixed by having the launcher forward credentials the way CI does). One Opus run failed in the harness. All are preserved in `results/trials/` with `-voided` in the name so the exclusions are auditable rather than quietly dropped.
+Three runs are excluded as execution failures, per the brief. Two Codex runs died at 401 Unauthorized because a `codex login` on the host does not reach the container (fixed by having the launcher forward credentials the way CI does). One Opus run hit an API rate limit (`ApiRateLimitError`), which the brief names explicitly as not a model failure. All are preserved in `results/trials/` with `-voided` in the name so the exclusions are auditable rather than quietly dropped.
 
 ---
 
 ## Reproducing this
 
-Everything runs from the repository root. See [`README.md`](README.md) for the full walkthrough, including how to author a new task in this repo.
+Everything runs from the repository root. The rubric review and the trials need model credentials; [`README.md`](README.md#getting-model-credentials) covers minting a Claude Code token and pointing Harbor at a Codex login, including the failure modes that cost me three voided runs.
 
 ```bash
 # static checks: 22 shell, 1 python
@@ -311,7 +311,8 @@ uvx --python 3.12 --from harbor==0.18.0 harbor run -p tasks/desk-position-reconc
 uvx --python 3.12 --from harbor==0.18.0 harbor run -p tasks/desk-position-reconcile \
     --agent nop --env docker -o ./jobs
 
-# the 35-criterion implementation rubric, exactly as .github/workflows/review.yml runs it
+# the 35-criterion implementation rubric: same rubric, prompt and model as
+# .github/workflows/review.yml, authenticating from your token rather than a CI secret
 tools/rubric-review.sh
 
 # trials, using the CI defaults in .github/harbor-run-defaults.yml
