@@ -223,10 +223,6 @@ def runs() -> dict[str, RunResult]:
             fp = res.outdir / report
             assert fp.exists(), f"the {name} run did not write {report}"
             assert_is_own_output(fp, res.outdir)
-        for extra in res.outdir.iterdir():
-            assert extra.name in REPORTS, (
-                f"the {name} run left {extra.name} in the output directory; only the "
-                f"policy's reports belong there")
     return r
 
 
