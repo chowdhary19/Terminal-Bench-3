@@ -10,7 +10,7 @@ This document is the whole story: what I submitted, what it does to frontier age
 
 **Task:** [`tasks/desk-position-reconcile`](tasks/desk-position-reconcile)
 
-The agent-facing files, the verifier and the reference are byte-identical across every trial reported here. The trials span three commits, all of which differ only in documentation and in one verifier hardening fix: `opus-run-2` and `opus-run-3` ran at `51b32712`, `opus-run-1` at `7b0e762d`, and the three Codex runs and both cheat runs at `b16a0038`. The hardening (`7b0e762d`) closed a process-isolation defect in how the verifier waits on a submission; it changed no graded assertion and no file the agent can see.
+The agent-facing files, the verifier and the reference are byte-identical across every trial reported here. The trials span three commits, all of which differ only in documentation and in one verifier hardening fix: `opus-run-2` and `opus-run-3` ran at `fb9fc8c4`, `opus-run-1` at `a77032ca`, and the three Codex runs and both cheat runs at `92a85003`. The hardening (`a77032ca`) closed a process-isolation defect in how the verifier waits on a submission; it changed no graded assertion and no file the agent can see.
 
 A prime-brokered market-making desk closes a clearing period. The agent writes the reconciliation that cuts eleven regulatory reports from four venues' fill exports, resolving every clearing account to the legal entity it belonged to on the date each row is stated as at, inside a 128 MB memory ceiling. Accounts print as seeded opaque tokens rather than ids, so the grading compares a partition, not a string.
 

@@ -9,9 +9,9 @@ exception traces was replaced with `<uv-env>/`. `checks/automated-checks.txt`,
 that reads all of it is in [`../SUBMISSION.md`](../SUBMISSION.md).
 
 The trials span three commits that differ only in documentation and in one verifier hardening fix:
-`opus-run-2` and `opus-run-3` at `51b32712`, `opus-run-1` at `7b0e762d`, and the three Codex runs and
-both cheat runs at `b16a0038`. Every agent-facing file, the graded assertions and the reference are
-byte-identical across all three. The checks and the rubric verdict were produced at `b16a0038` or
+`opus-run-2` and `opus-run-3` at `fb9fc8c4`, `opus-run-1` at `a77032ca`, and the three Codex runs and
+both cheat runs at `92a85003`. Every agent-facing file, the graded assertions and the reference are
+byte-identical across all three. The checks and the rubric verdict were produced at `92a85003` or
 later. The eleven trials in `trials-v1/` ran against the earlier version of the task, between 23 and 25
 August, while it was still being iterated.
 

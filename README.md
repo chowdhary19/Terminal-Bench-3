@@ -16,18 +16,48 @@ story, and keeping them means a reader can check it.
 The fork is kept intact so the task can be validated against the real CI, static checks, rubric and
 reviewer prompt rather than a copy of them. Upstream's README follows below this section.
 
-### Seeing only my work
+## For the evaluator: what is mine and where to find it
 
-Everything I wrote branches from upstream commit `642ae58d`. To review the contribution alone,
-without upstream's history:
+This repository has 81 tasks and about 615 commits, because it is a fork of terminal-bench and the
+fork is kept whole so the task can be validated against the real CI. Almost none of it is mine. Here
+is the boundary, precisely.
+
+**Everything I wrote branches from upstream commit `642ae58d`.** One command shows my work and
+nothing else:
 
 ```bash
-git diff 642ae58d..HEAD --stat        # every file I added or changed
-git log --oneline 642ae58d..HEAD      # my commits, oldest last
+git diff 642ae58d..HEAD --stat     # every file I added or changed
+git log  --oneline 642ae58d..HEAD  # my commits, oldest last
 ```
 
-On GitHub the same view is the compare page for `642ae58d...<this branch>`, which shows my commits
-and diffs and nothing else.
+On GitHub, the compare view for `642ae58d...main` shows the same thing. Every commit after that base
+is authored by me; every commit before it is upstream.
+
+**The submitted task is one directory:** [`tasks/desk-position-reconcile/`](tasks/desk-position-reconcile).
+That is the deliverable. If you read nothing else in `tasks/`, read that.
+
+**What is mine, by path:**
+
+| Path | What it is |
+|---|---|
+| [`tasks/desk-position-reconcile/`](tasks/desk-position-reconcile) | **The submitted task** |
+| [`SUBMISSION.md`](SUBMISSION.md) | The submission: results, method, failure analysis |
+| [`results/`](results) | All trial evidence and check output |
+| [`tools/`](tools) | Trial launcher, rubric review, verification tooling |
+| [`NOTICE`](NOTICE) | Authorship and licensing |
+| [`docs/worktrial/`](docs/worktrial) | Working notes kept while building the task |
+| `tasks/sandbox-upgrade-continuity/` | Four earlier tasks of mine that agents solved. |
+| `tasks/venue-settlement-close/` | Kept because working out why they were too easy is |
+| `tasks/settlement-stream-close/` | how the submitted task was designed. `SUBMISSION.md` |
+| `tasks/venue-gateway-cutover/` | tells that story; these let you check it. |
+
+**Everything else is upstream terminal-bench**, including the other 76 tasks, `checks/`, `rubrics/`,
+`.github/`, and the README content below this section. I have not modified any of it. The one
+exception is this section, which is prepended to upstream's README.
+
+A 20 minute path through it: this section, then [`SUBMISSION.md`](SUBMISSION.md), then
+[`tasks/desk-position-reconcile/README.md`](tasks/desk-position-reconcile/README.md) for the
+author-facing identity model that the task deliberately withholds from the agent.
 
 ## Start here
 
