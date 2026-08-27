@@ -23,8 +23,9 @@ adversarial fixtures.
 
 `rubric/verdicts.json` is the reviewer's verdict on all 35 criteria of
 `rubrics/task-implementation.toml`, produced by `tools/rubric-review.sh`, which uses the same rubric,
-prompt and model as `.github/workflows/review.yml`. 33 pass, 2 are not applicable
-(`artifact_efficiency`, `do_not_modify_enforced`), 0 fail.
+prompt and model as `.github/workflows/review.yml`. All 35 criteria clear with zero failures: 33
+pass and 2 not applicable (`artifact_efficiency`, `do_not_modify_enforced`). The CI gate fails only
+on a `fail` outcome, so this is a pass.
 
 `implementer-probe/` holds the three sealed Opus implementations run as a fairness check before any
 real trial was spent, with the grade for each. All three failed, on two different traps.

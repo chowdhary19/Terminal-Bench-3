@@ -53,8 +53,8 @@ Six standard trials against the current TB3 CI defaults, six genuine failures:
 | Adversarial (`/cheat`), codex | 2 | 0.000, both terminated early by an OpenAI safety refusal |
 
 Oracle scores 1.000 and nop scores 0.000. The 22 shell static checks pass; the 23rd needs a
-`GPTZERO_API_KEY` and is skipped without one. The 35-criterion implementation rubric returns 33
-pass, 2 not applicable, 0 fail. Raw evidence is in [`results/`](results).
+`GPTZERO_API_KEY` and is skipped without one. The 35-criterion implementation rubric clears with zero
+failures: 33 pass and 2 not applicable. The CI gate fails only on a `fail` outcome. Raw evidence is in [`results/`](results).
 
 ## Running it yourself
 

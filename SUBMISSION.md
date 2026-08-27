@@ -17,7 +17,7 @@ A prime-brokered market-making desk closes a clearing period. The agent writes t
 | Requirement | Result |
 |---|---|
 | Static checks | 23 of 23 pass |
-| Implementation rubric (35 criteria, run as CI runs it) | **33 pass, 2 not applicable, 0 fail** |
+| Implementation rubric (35 criteria, run as CI runs it) | **all 35 clear, zero failures** (33 pass, 2 not applicable) |
 | Docker build, environment and verifier | pass |
 | Oracle validation | reward **1.000**, 8 of 8 tests |
 | Nop validation | reward **0.000** |
@@ -110,7 +110,7 @@ The finding was not what I expected, and it is the single most important thing i
 
 ### Day 5: the rebuild, and 6 for 6
 
-I rewrote the task on what the audit found, ran three sealed implementers against it as a fairness check, then ran the full trial matrix. Six standard trials, six failures. Rubric clean after three review cycles that caught real defects in my verifier: 33 pass, 2 not applicable (`artifact_efficiency`, `do_not_modify_enforced`), 0 fail.
+I rewrote the task on what the audit found, ran three sealed implementers against it as a fairness check, then ran the full trial matrix. Six standard trials, six failures. Rubric clear after three review cycles that caught real defects in my verifier: zero failures across all 35 criteria, 33 pass and 2 not applicable (`artifact_efficiency`, `do_not_modify_enforced`). The CI gate fails only on a `fail` outcome, so this passes it.
 
 ---
 
