@@ -128,7 +128,8 @@ def run_tool(inputs: Path, outdir: Path, seed: int, timeout_s: int) -> RunResult
     waiting for every copy of that file descriptor to close, which a submission
     can hold open indefinitely by double-forking a grandchild; waiting on the
     process itself cannot be held open by anything the submission does. The whole
-    session is killed either way, so nothing it started outlives the run.
+    session is killed either way, along with every process the unprivileged uid
+    owns, so nothing the submission started outlives the run.
     """
     outdir.mkdir(parents=True, exist_ok=True)
     os.chmod(outdir, 0o777)

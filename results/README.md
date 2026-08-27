@@ -86,7 +86,11 @@ The anti-exploit evidence is `opus-cheat-1`, where the agent searched and then a
 report that no bypass exists, together with the six local fixtures, which are actual falsification
 attempts rather than an agent's opinion. Its reconnaissance and that report are in
 `trials/opus-cheat-1/agent-final-report.txt`. The six local exploit fixtures are recorded in
-`checks/automated-checks.txt`.
+`checks/automated-checks.txt`: copying the golden, hiding memory in a detached orphan, holding the
+verifier's pipes open, planting symlinks to the golden, minting tokens that ignore the seed, and a
+competent implementation whose only error is the merger fold. The symlink fixture came from an
+independent audit that used it to score reward 1 before the verifier was hardened; that log also
+records the six trial submissions re-run against the hardened verifier, each still scoring 0.
 
 ## Reproducing
 

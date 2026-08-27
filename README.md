@@ -237,7 +237,8 @@ shipping.
 `tools/adversarial/` holds five exploit fixtures used to test the verifier: copying the golden files,
 hiding memory in a detached orphan, ignoring the seed when minting tokens, holding the verifier's
 output pipes open from a double-forked grandchild, and planting symlinks to the golden so the
-privileged verifier dereferences them. The task's own `cheat/reconcile.py` is a fifth: a
+privileged verifier dereferences them. The symlink one is there because an independent audit found
+it and it worked, scoring reward 1 with no work done until the verifier was hardened. The task's own `cheat/reconcile.py` is a fifth: a
 competent implementation whose only error is the merger fold. All six must score 0, and
 `results/checks/automated-checks.txt` records that they do.
 
